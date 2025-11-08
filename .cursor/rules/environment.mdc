@@ -1,0 +1,68 @@
+---
+alwaysApply: true
+---
+
+# 開発環境ルール
+
+## 基本設定
+- プロジェクトタイプ: Flask 3.x
+- 開発言語: Python 3.11+
+- データベース: SQLite
+- 仮想環境: venv
+
+## 開発ツール
+- バージョン管理: Git
+- 依存関係管理: pip + requirements.txt
+- フロントエンド: npm (TailwindCSS用)
+- ビルドツール: なし（Flaskはビルド不要）
+
+## コーディング規約
+- PEP 8準拠のコードフォーマット
+- インデント: スペース4個
+- 日本語でのコメント記述
+- Docstringの記述必須（Google形式推奨）
+- 型ヒント（Type Hints）の使用推奨
+
+## テスト環境
+- pytest テストフレームワーク
+- テストカバレッジ目標: 70%以上
+- 新機能実装時のテスト必須
+
+## ドキュメント管理
+- READMEの日本語記述
+- API仕様書の維持
+- データベース設計図の更新
+- 環境構築手順の文書化
+
+## データベース設定
+- SQLiteファイル配置: `instance/app.db`
+- マイグレーションファイル: `migrations/`
+- テスト用DB: `instance/test.db`
+- バージョン管理対象外: `instance/` フォルダ（.gitignore設定）
+
+## 仮想環境コマンド
+
+```bash
+# 仮想環境の作成
+python -m venv venv
+
+# 仮想環境の有効化（Mac/Linux）
+source venv/bin/activate
+
+# 仮想環境の有効化（Windows）
+venv\Scripts\activate
+
+# パッケージのインストール
+pip install -r requirements.txt
+
+# データベースの初期化
+flask db init
+flask db migrate -m "Initial migration"
+flask db upgrade
+
+# 開発サーバー起動
+flask run
+
+# マイグレーション
+flask db migrate -m "migration message"
+flask db upgrade
