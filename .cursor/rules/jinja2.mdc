@@ -1,0 +1,256 @@
+---
+alwaysApply: true
+globs: *.html
+---
+
+# Jinja2テンプレートルール
+
+## 1. テンプレート設計
+- テンプレート継承の活用
+- マクロによる再利用可能なコンポーネント
+- 単一責任の原則遵守
+- テンプレートの再利用性重視
+- 共通コンポーネント配置: app/templates/components/
+
+## 2. ディレクトリ構造
+### 基本方針
+- ベーステンプレート: app/templates/base.html
+- 機能別ディレクトリ: app/templates/{機能名}/
+- 共通コンポーネント: app/templates/components/
+
+### 命名規約
+- リソース系（CRUD）: 複数形（memos, posts, users）
+- 機能系: 単数形または適切な形式（dashboard, profile, settings）
+
+### テンプレート配置
+- テンプレートルート: app/templates/
+- ページテンプレート: {リソース名（複数形）}/{アクション名}.html
+- 例: memos/index.html, memos/create.html, memos/edit.html, memos/show.html
+
+対応するファイル構成:
+```
+app/templates/
+├── base.html
+├── components/
+│   ├── navbar.html
+│   ├── footer.html
+│   └── forms/
+│       ├── input.html
+│       └── select.html
+└── memos/
+    ├── index.html
+    ├── create.html
+    ├── edit.html
+    └── show.html
+```
+
+## 3. 必須構文
+
+### ベーステンプレート
+すべてのページテンプレートは base.html を継承:
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}アプリ名{% endblock %}</title>
+    <link href="{{ url_for('static', filename='css/tailwind.css') }}" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% include 'components/navbar.html' %}
+    
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
+    
+    {% include 'components/footer.html' %}
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+```
+
+## 4. データ表示
+
+### 変数の表示
+Jinja2は自動エスケープが有効:
+```html
+{{ variable }}  <!-- 自動エスケープ -->
+{{ variable|safe }}  <!-- エスケープなし（注意して使用） -->
+```
+
+### フィルタの使用
+```html
+{{ text|length }}  <!-- 文字数 -->
+{{ text|upper }}   <!-- 大文字変換 -->
+{{ date|strftime('%Y年%m月%d日') }}  <!-- 日付フォーマット -->
+```
+
+## 5. フォーム実装
+### バリデーション
+- Flask-WTFによるフォーム生成
+- CSRFトークン自動付与
+- リアルタイム検証（Alpine.js併用）
+- 日本語エラーメッセージ
+- インラインエラー表示
+
+### セキュリティ
+- CSRFトークン: {{ form.csrf_token }}
+- 自動エスケープによるXSS対策
+- 入力値サニタイズ
+- 認可制御（テンプレート内での条件分岐）
+
+### UX対応
+- ローディング表示（Alpine.js）
+- エラー表示最適化
+- アクセシビリティ確保
+- フィードバック表示
+
+## 6. UI/UX
+- TailwindCSSによるスタイリング
+- レスポンシブデザイン必須
+- アクセシビリティガイドライン遵守
+- Alpine.jsによるインタラクティブUI実装
+- 適切なローディング状態管理
+
+## 7. パフォーマンス
+- テンプレートキャッシュの活用
+- 不要な計算をテンプレート内で行わない
+- 静的ファイルの最適化
+- CDNの活用
+
+## 8. テスト
+- テンプレートレンダリングテスト
+- フォーム送信テスト
+- E2Eテスト実装
+- テストカバレッジ確保
+
+## 9. Jinja2実装パターン
+
+### 基本的なテンプレート構造
+
+```html
+{% extends 'base.html' %}
+
+{% block title %}ページタイトル{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">見出し</h1>
+    
+    <!-- コンテンツ -->
+</div>
+{% endblock %}
+```
+
+### 重要な実装ポイント
+
+#### フォームの実装
+Flask-WTFとの連携:
+```html
+<form method="POST" action="{{ url_for('memos.create') }}">
+    {{ form.csrf_token }}
+    
+    <div class="mb-4">
+        {{ form.title.label(class="block text-sm font-medium") }}
+        {{ form.title(class="mt-1 block w-full rounded-md border-gray-300") }}
+        {% if form.title.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.title.errors[0] }}</p>
+        {% endif %}
+    </div>
+    
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md">
+        送信
+    </button>
+</form>
+```
+
+#### 条件分岐
+```html
+{% if current_user.is_authenticated %}
+    <p>ようこそ、{{ current_user.name }}さん</p>
+{% else %}
+    <a href="{{ url_for('auth.login') }}">ログイン</a>
+{% endif %}
+```
+
+#### ループ処理
+```html
+{% for memo in memos %}
+    <div class="memo-card">
+        <h3>{{ memo.title }}</h3>
+        <p>{{ memo.content }}</p>
+    </div>
+{% else %}
+    <p>メモがありません</p>
+{% endfor %}
+```
+
+## 10. よくある間違いと修正
+
+### NG: CSRFトークンの欠落
+```html
+<form method="POST">
+    <!-- CSRFトークンがない -->
+</form>
+```
+
+### OK: CSRFトークンの追加
+```html
+<form method="POST">
+    {{ form.csrf_token }}
+    <!-- フォームフィールド -->
+</form>
+```
+
+### NG: 不適切なエスケープ解除
+```html
+{{ user_input|safe }}  <!-- XSSの危険性 -->
+```
+
+### OK: 自動エスケープの利用
+```html
+{{ user_input }}  <!-- 自動でエスケープされる -->
+```
+
+### NG: url_forを使わないURL
+```html
+<a href="/memos/1">詳細</a>
+```
+
+### OK: url_forの使用
+```html
+<a href="{{ url_for('memos.show', id=memo.id) }}">詳細</a>
+```
+
+### NG: テンプレート内での複雑なロジック
+```html
+{% for memo in memos %}
+    {% set words = memo.content.split() %}
+    {% set word_count = words|length %}
+    <!-- 複雑な計算 -->
+{% endfor %}
+```
+
+### OK: ビューでデータを準備
+```python
+# ビュー側で処理
+@bp.route('/memos')
+def index():
+    memos = Memo.query.all()
+    for memo in memos:
+        memo.word_count = len(memo.content.split())
+    return render_template('memos/index.html', memos=memos)
+```
