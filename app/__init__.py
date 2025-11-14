@@ -46,4 +46,9 @@ def create_app(config_name: str = "default") -> Flask:
     # データベースモデルのインポート（循環インポートを避けるため）
     from app.models import pos_sales, daily_sales  # noqa: F401
 
+    # 機能Blueprintの登録
+    from app.features import register_features
+
+    register_features(app)
+
     return app
