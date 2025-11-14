@@ -7,9 +7,12 @@ PDFファイルのアップロードとデータベースへの保存を処理�
 import os
 import sys
 import logging
+from io import BytesIO
 from typing import Dict, List
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for, send_file
 from werkzeug.utils import secure_filename
+import pandas as pd
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from app import db
 from app.models.pos_sales import PosSales
 from app.models.daily_sales import DailySales
@@ -519,6 +522,250 @@ def details(sale_date: str, pos_number: str):
         sales_records=sales_records,
         total_amount=total_amount,
     )
+
+
+def generate_sales_excel(sale_date: str) -> BytesIO:
+    """
+    指定された営業日のPOS売上データを集計し、Excelファイルを生成する
+
+    Args:
+        sale_date: 営業日（YYYY-MM-DD形式）
+
+    Returns:
+        ExcelファイルのBytesIOオブジェクト
+
+    Excelファイルの構成:
+    - POS1シート: POSレジ番号「POS1」の商品別集計
+    - POS2シート: POSレジ番号「POS2」の商品別集計
+    - POS3シート: POSレジ番号「POS3」の商品別集計
+    - POS4シート: POSレジ番号「POS4」の商品別集計
+    - 売上集計シート: 全レジ（POS1〜4）のデータを合算した商品別集計
+    """
+    try:
+        # pos_salesテーブルから対象日のデータを取得
+        sales_data = (
+            PosSales.query.filter_by(sale_date=sale_date)
+            .with_entities(
+                PosSales.pos_number,
+                PosSales.product_code,
+                PosSales.product_name,
+                PosSales.unit_price,
+                PosSales.quantity,
+                PosSales.subtotal,
+            )
+            .all()
+        )
+
+        if not sales_data:
+            raise ValueError(f"{sale_date}のデータが見つかりませんでした")
+
+        # データをpandas DataFrameに変換
+        df = pd.DataFrame(
+            [
+                {
+                    "pos_number": record.pos_number,
+                    "product_code": record.product_code,
+                    "product_name": record.product_name,
+                    "unit_price": record.unit_price,
+                    "quantity": record.quantity,
+                    "subtotal": record.subtotal,
+                }
+                for record in sales_data
+            ]
+        )
+
+        # Excelファイルをメモリ上に生成
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            # 各POSレジ（POS1〜POS4）のシートを作成
+            for pos_num in ["POS1", "POS2", "POS3", "POS4"]:
+                pos_df = df[df["pos_number"] == pos_num].copy()
+
+                if not pos_df.empty:
+                    # 商品コード、商品名、単価でグループ化して集計
+                    aggregated = (
+                        pos_df.groupby(["product_code", "product_name", "unit_price"])
+                        .agg({"quantity": "sum", "subtotal": "sum"})
+                        .reset_index()
+                    )
+                    aggregated = aggregated.sort_values("product_code")
+                else:
+                    # データがない場合でも空のDataFrameを作成
+                    aggregated = pd.DataFrame(
+                        columns=["product_code", "product_name", "unit_price", "quantity", "subtotal"]
+                    )
+
+                # カラム名を日本語に変更
+                aggregated.columns = ["商品コード", "商品名", "単価", "販売数", "売上金額"]
+                aggregated.to_excel(writer, sheet_name=pos_num, index=False)
+
+            # 売上集計シート（全レジ合計）を作成
+            aggregated_all = (
+                df.groupby(["product_code", "product_name", "unit_price"])
+                .agg({"quantity": "sum", "subtotal": "sum"})
+                .reset_index()
+            )
+            aggregated_all = aggregated_all.sort_values("product_code")
+            aggregated_all.columns = ["商品コード", "商品名", "単価", "販売数", "売上金額"]
+            aggregated_all.to_excel(writer, sheet_name="売上集計", index=False)
+
+            # スタイルの適用（openpyxlを使用）
+            # スタイル定義
+            header_fill = PatternFill(start_color="4A90E2", end_color="4A90E2", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF", size=11)
+            row_fill = PatternFill(start_color="F9F9F9", end_color="F9F9F9", fill_type="solid")
+            border_side = Side(style="thin", color="000000")
+            border = Border(left=border_side, right=border_side, top=border_side, bottom=border_side)
+            number_format = "#,##0"
+            alignment_center = Alignment(horizontal="center", vertical="center")
+            alignment_right = Alignment(horizontal="right", vertical="center")
+            total_font = Font(bold=True, size=11)
+
+            for sheet_name in writer.sheets:
+                worksheet = writer.sheets[sheet_name]
+
+                # ヘッダー行のスタイル適用
+                header_row = worksheet[1]
+                for cell in header_row:
+                    cell.fill = header_fill
+                    cell.font = header_font
+                    cell.alignment = alignment_center
+                    cell.border = border
+
+                # データ行のスタイル適用と合計計算
+                total_quantity = 0
+                total_subtotal = 0
+
+                for row_idx, row in enumerate(
+                    worksheet.iter_rows(min_row=2, max_row=worksheet.max_row), start=2
+                ):
+                    # 1行毎に行の背景色を設定（偶数行）
+                    if row_idx % 2 == 0:
+                        for cell in row:
+                            cell.fill = row_fill
+
+                    for idx, cell in enumerate(row):
+                        cell.border = border
+                        # 列インデックスに応じてスタイルを適用
+                        # 0: 商品コード, 1: 商品名, 2: 単価, 3: 販売数, 4: 売上金額
+                        if idx == 0:  # 商品コード
+                            cell.alignment = alignment_center
+                        elif idx == 1:  # 商品名
+                            cell.alignment = Alignment(horizontal="left", vertical="center")
+                        elif idx == 2:  # 単価
+                            cell.number_format = number_format
+                            cell.alignment = alignment_right
+                        elif idx == 3:  # 販売数
+                            cell.alignment = alignment_right
+                            if cell.value is not None:
+                                try:
+                                    total_quantity += int(cell.value)
+                                except (ValueError, TypeError):
+                                    pass
+                        elif idx == 4:  # 売上金額
+                            cell.number_format = number_format
+                            cell.alignment = alignment_right
+                            if cell.value is not None:
+                                try:
+                                    total_subtotal += int(cell.value)
+                                except (ValueError, TypeError):
+                                    pass
+
+                # 合計行を追加
+                total_row_num = worksheet.max_row + 1
+                # 合計行のセルを作成
+                worksheet.cell(row=total_row_num, column=1, value="合計")
+                worksheet.cell(row=total_row_num, column=2, value="")
+                worksheet.cell(row=total_row_num, column=3, value="")
+                worksheet.cell(row=total_row_num, column=4, value=total_quantity)
+                worksheet.cell(row=total_row_num, column=5, value=total_subtotal)
+
+                # 合計行のスタイル適用
+                total_row = worksheet[total_row_num]
+                for idx, cell in enumerate(total_row):
+                    cell.border = border
+                    cell.font = total_font
+                    if idx == 0:  # 合計
+                        cell.alignment = alignment_center
+                        if total_row_num % 2 == 0:
+                            cell.fill = row_fill
+                    elif idx == 1:  # 商品名（空）
+                        cell.alignment = Alignment(horizontal="left", vertical="center")
+                        if total_row_num % 2 == 0:
+                            cell.fill = row_fill
+                    elif idx == 2:  # 単価（空）
+                        cell.alignment = alignment_right
+                        if total_row_num % 2 == 0:
+                            cell.fill = row_fill
+                    elif idx == 3:  # 販売数
+                        cell.alignment = alignment_right
+                        if total_row_num % 2 == 0:
+                            cell.fill = row_fill
+                    elif idx == 4:  # 売上金額
+                        cell.number_format = number_format
+                        cell.alignment = alignment_right
+                        if total_row_num % 2 == 0:
+                            cell.fill = row_fill
+
+                # 列幅の調整
+                column_widths = {
+                    "A": 10,  # 商品コード
+                    "B": 30,  # 商品名
+                    "C": 8,  # 単価
+                    "D": 8,  # 販売数
+                    "E": 15,  # 売上金額
+                }
+                for col_letter, width in column_widths.items():
+                    worksheet.column_dimensions[col_letter].width = width
+
+                # 行の高さを調整
+                worksheet.row_dimensions[1].height = 25  # ヘッダー行
+                for row_num in range(2, worksheet.max_row + 1):
+                    worksheet.row_dimensions[row_num].height = 20
+
+        output.seek(0)
+        return output
+
+    except Exception as e:
+        import traceback
+
+        print(f"[ERROR] Excel生成エラー: {e}")
+        print(f"[ERROR] トレースバック:\n{traceback.format_exc()}")
+        sys.stdout.flush()
+        raise
+
+
+@pos_bp.route("/download/excel/<sale_date>")
+def download_excel(sale_date: str):
+    """
+    Excelファイルを生成してダウンロードする
+
+    Args:
+        sale_date: 営業日（YYYY-MM-DD形式）
+
+    Returns:
+        Excelファイルのダウンロードレスポンス
+    """
+    try:
+        # Excelファイルを生成
+        excel_file = generate_sales_excel(sale_date)
+
+        # ファイル名を生成（例: 商品別売上集計_2025-11-05.xlsx）
+        filename = f"商品別売上集計_{sale_date}.xlsx"
+
+        return send_file(
+            excel_file,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name=filename,
+        )
+
+    except ValueError as e:
+        flash(f"エラー: {str(e)}", "error")
+        return redirect(url_for("pos.dashboard"))
+    except Exception as e:
+        flash(f"Excelファイルの生成に失敗しました: {str(e)}", "error")
+        return redirect(url_for("pos.dashboard"))
 
 
 # テスト・デバッグ用: 直接実行時のエラーハンドリング
