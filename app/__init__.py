@@ -3,11 +3,12 @@ Flask Application Factory
 
 Application Factoryパターンを使用してFlaskアプリケーションを生成
 """
+import locale
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
-import os
+from config import config
 
 # 拡張機能のインスタンス（アプリ外で初期化）
 db = SQLAlchemy()
@@ -25,34 +26,29 @@ def create_app(config_name: str = 'default') -> Flask:
     Returns:
         Flask: 設定済みのFlaskアプリケーションインスタンス
     """
-    app = Flask(__name__, instance_relative_config=True)
-    
-    # 設定
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-        'DATABASE_URL',
-        'sqlite:///' + os.path.join(app.instance_path, 'app.db')
-    )
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # instanceフォルダの作成
-    try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
-    
+    app = Flask(__name__)
+    app.config.from_object(config[config_name])
+    config[config_name].init_app(app)
+
     # 拡張機能の初期化
     db.init_app(app)
     migrate.init_app(app, db)
-    login_manager.init_app(app)
-    login_manager.login_view = 'auth.login'  # ユーザー管理実装後に有効化
+    # login_manager.init_app(app) # ユーザー管理実装時に有効化
+    # login_manager.login_view = 'auth.login'  # ユーザー管理実装時に有効化
     
-    # モデルのインポート（循環インポートを防ぐため、ここでインポート）
-    from app.models import Program, Reservation
-    
-    # Blueprintの登録（今後実装）
-    # from app.routes import main, reservations
-    # app.register_blueprint(main.main_bp)
-    # app.register_blueprint(reservations.reservations_bp, url_prefix='/reservations')
-    
+    # 循環インポートを避けるため、関数内でインポートします
+    from . import models
+    from .reservation import reservation_bp
+    from . import commands
+
+    # カスタムフィルターの登録
+    @app.template_filter('comma')
+    def format_comma(value):
+        """数値を3桁区切りの文字列にフォーマットするフィルター"""
+        locale.setlocale(locale.LC_ALL, '')
+        return locale.format_string("%d", value, grouping=True)
+
+    app.register_blueprint(reservation_bp)
+    commands.init_app(app)
+
     return app
