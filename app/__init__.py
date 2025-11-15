@@ -8,6 +8,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import os
+from config import config  # config.pyから設定辞書をインポート
 
 # 拡張機能のインスタンスを作成（アプリケーションコンテキスト外で使用可能にするため）
 db = SQLAlchemy()
@@ -19,19 +20,16 @@ def create_app(config_name: str = "default") -> Flask:
     Flaskアプリケーションを作成する（Application Factoryパターン）
 
     Args:
-        config_name: 設定名（デフォルト: 'default'）
+        config_name: 設定名（'development', 'production', 'default'）
+                    'default'は開発環境設定（DevelopmentConfig）を指す
 
     Returns:
         Flask: 初期化されたFlaskアプリケーションインスタンス
     """
     app = Flask(__name__, instance_relative_config=True)
 
-    # 設定
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "DATABASE_URL", "sqlite:///" + os.path.join(app.instance_path, "app.db")
-    )
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    # config.pyから設定を読み込む
+    app.config.from_object(config[config_name])
 
     # instanceフォルダの作成
     try:
