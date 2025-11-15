@@ -44,7 +44,7 @@ def create_app(config_name: str = "default") -> Flask:
     migrate.init_app(app, db)
 
     # データベースモデルのインポート（循環インポートを避けるため）
-    from app.models import pos_sales, daily_sales  # noqa: F401
+    from app.models import pos_sales, daily_sales, user  # noqa: F401
 
     # 機能Blueprintの登録
     from app.features import register_features
