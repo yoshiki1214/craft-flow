@@ -2,3 +2,11 @@
 .venv
 db.sqlite
 __pycache__/
+instance/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
