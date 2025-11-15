@@ -10,203 +10,124 @@
     <h1>ファイルをアップロードする</h1>
 
     <!-- フラッシュメッセージの表示 -->
-    <!-- Flaskのflashメッセージ機能を使用して、サーバーからの通知を表示します -->
-    <!-- get_flashed_messages()でサーバー側から送られたメッセージを取得 -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-    <!-- messagesにメッセージが存在する場合のみ表示 -->
     {% if messages %}
-    <!-- 複数のメッセージがある場合、それぞれをループで表示 -->
     {% for category, message in messages %}
-    <!-- categoryはメッセージの種類（success, error, warningなど） -->
-    <!-- alert-{{ category }}でクラス名が動的に設定されます（例: alert-success） -->
     <div class="alert alert-{{ category }}">
-        <!-- メッセージの内容を表示 -->
         {{ message }}
     </div>
     {% endfor %}
     {% endif %}
     {% endwith %}
 
-    <!-- ファイルアップロード用のフォーム -->
-    <!-- method="post": フォーム送信時にPOSTメソッドを使用（データを送信するため） -->
-    <!-- enctype="multipart/form-data": ファイルをアップロードするために必須の設定 -->
-    <form method="post" enctype="multipart/form-data" id="upload-form">
-        <!-- ファイル入力欄のコンテナ -->
-        <!-- ここに動的にファイル入力欄が追加されます -->
-        <div id="file-inputs-container">
-            <!-- 最初のファイル入力欄 -->
-            <!-- この入力欄は複数ファイル選択も可能（multiple属性） -->
-            <div class="file-input-wrapper">
-                <!-- type="file": ファイルを選択するための入力欄 -->
-                <!-- name="file": サーバー側でこの名前でファイルを取得する（同じ名前で複数送信可能） -->
-                <!-- multiple: この入力欄で複数のファイルを一度に選択できるようにする -->
-                <!-- accept=".xlsx,.xlsm": ファイル選択ダイアログで表示するファイル形式を制限 -->
-                <!-- style="display: none": ファイル入力欄は非表示にして、ボタンで操作する -->
-                <input type="file" name="file" multiple accept=".xlsx,.xlsm" class="file-input" style="display: none;">
-                <!-- 選択されたファイル名を表示する領域 -->
-                <div class="file-names-list"></div>
+    <!-- 統合フォーム -->
+    <form method="post" action="{{ url_for('upload_files') }}" enctype="multipart/form-data" id="upload-form">
+        <!-- 顧客データのアップロードセクション -->
+        <section class="upload-section">
+            <h2>顧客データのアップロード</h2>
+            <div id="customer-file-inputs-container">
+                <div class="file-input-wrapper">
+                    <input type="file" name="customer_file" accept=".xlsx,.xlsm" class="file-input" id="customer-file-input" style="display: none;">
+                    <div class="file-names-list" id="customer-file-names-list"></div>
+                </div>
             </div>
+
+            <button type="button" id="select-customer-file-btn">ファイルを選択</button>
+
+            <p class="help-text">
+                ※ Excelファイルを1つ選択してください（.xlsx, .xlsm形式のみ）
+            </p>
+        </section>
+
+        <!-- 委託販売売上データのアップロードセクション -->
+        <section class="upload-section">
+            <h2>委託販売売上データのアップロード</h2>
+            <div id="sales-file-inputs-container">
+                <div class="file-input-wrapper">
+                    <input type="file" name="sales_file" accept=".xlsx,.xlsm" class="file-input" id="sales-file-input" style="display: none;">
+                    <div class="file-names-list" id="sales-file-names-list"></div>
+                </div>
+            </div>
+
+            <button type="button" id="select-sales-file-btn">ファイルを選択</button>
+
+            <p class="help-text">
+                ※ Excelファイルを1つ選択してください（.xlsx, .xlsm形式のみ）
+            </p>
+        </section>
+
+        <!-- 一括アップロードボタン -->
+        <div style="margin-top: 20px;">
+            <input type="submit" value="アップロード" id="upload-submit-btn">
         </div>
-
-        <!-- ファイル選択ボタン -->
-        <!-- type="button": フォーム送信をしないボタン -->
-        <!-- クリックするとファイル選択ダイアログが開く -->
-        <button type="button" id="add-file-btn">ファイルを選択</button>
-
-        <!-- ユーザーへの説明文 -->
-        <p class="help-text">
-            ※ 複数のExcelファイルを選択できます（.xlsx, .xlsm形式のみ）
-        </p>
-
-        <!-- 送信ボタン。クリックすると、フォームのデータがサーバーに送信-->
-        <input type="submit" value="アップロード">
     </form>
 
     <script>
-        // ファイル入力欄を追加する機能
-        // DOMContentLoaded: HTMLの読み込みが完了したら実行
         document.addEventListener('DOMContentLoaded', function () {
-            // 「ファイルを選択」ボタンの要素を取得
-            const addFileBtn = document.getElementById('add-file-btn');
-            // ファイル入力欄のコンテナを取得
-            const container = document.getElementById('file-inputs-container');
+            // 顧客データ用のファイル選択
+            const customerFileInput = document.getElementById('customer-file-input');
+            const selectCustomerFileBtn = document.getElementById('select-customer-file-btn');
+            const customerFileNamesList = document.getElementById('customer-file-names-list');
 
+            selectCustomerFileBtn.addEventListener('click', function () {
+                customerFileInput.click();
+            });
 
-            // ファイル入力欄から特定のファイルを削除する関数
-            function removeFileFromInput(fileInput, fileNameToRemove) {
-                // DataTransfer APIを使用して新しいFileListを作成
-                const dataTransfer = new DataTransfer();
+            customerFileInput.addEventListener('change', function () {
+                displayFileName(this, customerFileNamesList);
+            });
 
-                // 削除するファイル名以外のファイルを追加
-                for (let i = 0; i < fileInput.files.length; i++) {
-                    if (fileInput.files[i].name !== fileNameToRemove) {
-                        dataTransfer.items.add(fileInput.files[i]);
-                    }
-                }
+            // 委託販売売上データ用のファイル選択
+            const salesFileInput = document.getElementById('sales-file-input');
+            const selectSalesFileBtn = document.getElementById('select-sales-file-btn');
+            const salesFileNamesList = document.getElementById('sales-file-names-list');
 
-                // 新しいFileListを設定
-                fileInput.files = dataTransfer.files;
+            selectSalesFileBtn.addEventListener('click', function () {
+                salesFileInput.click();
+            });
 
-                // changeイベントを手動で発火して、表示を更新
-                const event = new Event('change', { bubbles: true });
-                fileInput.dispatchEvent(event);
-            }
+            salesFileInput.addEventListener('change', function () {
+                displayFileName(this, salesFileNamesList);
+            });
 
-            // 選択されたファイル名を表示する関数
-            function displayFileNames(fileInput, wrapper) {
-                // ファイル名を表示する要素を取得（なければ作成）
-                let fileNamesList = wrapper.querySelector('.file-names-list');
-                if (!fileNamesList) {
-                    fileNamesList = document.createElement('div');
-                    fileNamesList.className = 'file-names-list';
-                    // ファイル入力欄の後に挿入
-                    fileInput.parentNode.insertBefore(fileNamesList, fileInput.nextSibling);
-                }
-
-                // 既存の内容をクリア
+            // ファイル名を表示する関数（1ファイルのみ）
+            function displayFileName(fileInput, fileNamesList) {
                 fileNamesList.innerHTML = '';
 
-                // 選択されたファイルがある場合
                 if (fileInput.files.length > 0) {
-                    // 各ファイル名を表示し、削除ボタンを追加
-                    for (let i = 0; i < fileInput.files.length; i++) {
-                        // ファイル名と削除ボタンのコンテナを作成
-                        const fileItem = document.createElement('div');
-                        fileItem.className = 'file-item';
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
 
-                        // ファイル名を表示
-                        const fileNameSpan = document.createElement('span');
-                        fileNameSpan.textContent = fileInput.files[i].name;
-                        fileNameSpan.className = 'file-name';
+                    const fileNameSpan = document.createElement('span');
+                    fileNameSpan.textContent = fileInput.files[0].name;
+                    fileNameSpan.className = 'file-name';
 
-                        // 削除ボタンを作成
-                        const removeFileBtn = document.createElement('button');
-                        removeFileBtn.type = 'button';
-                        removeFileBtn.className = 'remove-file-item-btn';
-                        removeFileBtn.textContent = '削除';
-                        removeFileBtn.title = 'このファイルを削除';
-                        // 削除ボタンをクリックしたら、このファイルを削除
-                        // ファイル名を保持して削除関数に渡す
-                        const fileName = fileInput.files[i].name;
-                        removeFileBtn.addEventListener('click', function () {
-                            removeFileFromInput(fileInput, fileName);
-                        });
+                    const removeFileBtn = document.createElement('button');
+                    removeFileBtn.type = 'button';
+                    removeFileBtn.className = 'remove-file-item-btn';
+                    removeFileBtn.textContent = '削除';
+                    removeFileBtn.title = 'このファイルを削除';
+                    removeFileBtn.addEventListener('click', function () {
+                        fileInput.value = '';
+                        fileNamesList.innerHTML = '';
+                    });
 
-                        // 要素を組み立てて追加
-                        fileItem.appendChild(fileNameSpan);
-                        fileItem.appendChild(removeFileBtn);
-                        fileNamesList.appendChild(fileItem);
-                    }
-                } else {
-                    // ファイルが選択されていない場合は空にする
-                    fileNamesList.textContent = '';
+                    fileItem.appendChild(fileNameSpan);
+                    fileItem.appendChild(removeFileBtn);
+                    fileNamesList.appendChild(fileItem);
                 }
             }
 
-            // 「ファイルを選択」ボタンの表示状態を更新する関数（現在は常に表示）
-            function updateAddFileButton() {
-                // ボタンは常に表示されるため、この関数は現在使用されていません
-                // 将来的に条件付き表示が必要になった場合に備えて残しています
-            }
+            // フォーム送信時のバリデーション
+            const uploadForm = document.getElementById('upload-form');
+            uploadForm.addEventListener('submit', function (e) {
+                const customerFile = customerFileInput.files.length > 0;
+                const salesFile = salesFileInput.files.length > 0;
 
-            // ファイル入力欄にchangeイベントリスナーを設定する関数
-            // ファイルが選択されたときに実行される
-            function setupFileInputListener(fileInput, wrapper) {
-                fileInput.addEventListener('change', function () {
-                    // 選択されたファイル名を表示
-                    displayFileNames(this, wrapper);
-                });
-            }
-
-            // 最初のファイル入力欄にイベントリスナーを設定
-            const firstFileInput = container.querySelector('.file-input');
-            const firstWrapper = container.querySelector('.file-input-wrapper');
-            if (firstFileInput && firstWrapper) {
-                setupFileInputListener(firstFileInput, firstWrapper);
-            }
-
-            // ファイル入力欄を追加する関数
-            function addFileInput() {
-                // 新しいファイル入力欄のラッパー要素を作成
-                const wrapper = document.createElement('div');
-                wrapper.className = 'file-input-wrapper';
-
-                // ファイル入力欄を作成（まとめて選択できるようにmultiple属性を付ける）
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.name = 'file'; // サーバー側でgetlist("file")で取得できる
-                fileInput.multiple = true; // 複数ファイル選択を可能にする
-                fileInput.accept = '.xlsx,.xlsm';
-                fileInput.className = 'file-input';
-                fileInput.style.display = 'none'; // ファイル入力欄は非表示にして、ボタンで操作する
-
-                // 選択されたファイル名を表示する領域を作成
-                const fileNamesList = document.createElement('div');
-                fileNamesList.className = 'file-names-list';
-
-                // ファイル選択後に「ファイルを追加」ボタンを表示するイベントリスナーを設定
-                setupFileInputListener(fileInput, wrapper);
-
-                // 要素を組み立てて追加
-                wrapper.appendChild(fileInput);
-                wrapper.appendChild(fileNamesList);
-                container.appendChild(wrapper);
-
-                // 新しいファイル入力欄のファイル選択ダイアログをすぐに開く
-                // click()メソッドでファイル選択ダイアログを開く
-                fileInput.click();
-            }
-
-            // 「ファイルを選択」ボタンをクリックしたときの処理
-            addFileBtn.addEventListener('click', function () {
-                // 最初のファイル入力欄が存在し、まだファイルが選択されていない場合
-                const firstFileInput = container.querySelector('.file-input');
-                if (firstFileInput && firstFileInput.files.length === 0) {
-                    // 最初のファイル入力欄のファイル選択ダイアログを開く
-                    firstFileInput.click();
-                } else {
-                    // 既にファイルが選択されている場合は、新しいファイル入力欄を追加
-                    addFileInput();
+                if (!customerFile && !salesFile) {
+                    e.preventDefault();
+                    alert('少なくとも1つのファイルを選択してください。');
+                    return false;
                 }
             });
         });

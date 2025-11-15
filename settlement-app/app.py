@@ -41,74 +41,154 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route("/", methods=["GET", "POST"])
-def upload_file():
+@app.route("/", methods=["GET"])
+def index():
     """
-    ファイルアップロードを処理するルートハンドラー（複数ファイル対応）
+    アップロードフォームを表示するルートハンドラー
 
-    GETリクエスト: アップロードフォームを表示
-    POSTリクエスト: アップロードされたファイルを保存
+    Returns:
+        アップロードフォームのHTMLテンプレート
     """
-    if request.method == "POST":
-        # POSTリクエストの場合（ファイルが送信された場合）
-
-        # ファイルがリクエストに存在するか確認
-        # フォームに "file" という名前のフィールドがない場合はリダイレクト
-        if "file" not in request.files:
-            flash("ファイルが選択されていません", "error")
-            return redirect(request.url)
-
-        # リクエストから複数のファイルオブジェクトを取得
-        # getlist()を使用することで、複数のファイルをリストとして取得
-        files = request.files.getlist("file")
-
-        # アップロード成功/失敗のカウンター
-        uploaded_files = []
-        failed_files = []
-
-        # 各ファイルを処理
-        for file in files:
-            # ファイル名が空かチェック（ファイルが選択されていない場合）
-            if file.filename == "":
-                continue  # 空のファイルはスキップ
-
-            # ファイルが存在し、かつ許可された拡張子かどうかをチェック
-            if file and allowed_file(file.filename):
-                try:
-                    # ファイル名を安全な形式に変換
-                    # 例: "test file.xlsx" → "test_file.xlsx"（スペースや特殊文字を処理）
-                    filename = secure_filename(file.filename)
-
-                    # ファイルをアップロードフォルダに保存
-                    # os.path.join()でアップロードフォルダのパスとファイル名を結合
-                    file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-                    uploaded_files.append(filename)
-                except Exception:
-                    # ファイル保存時にエラーが発生した場合
-                    failed_files.append(file.filename)
-            else:
-                # 許可されていない拡張子の場合
-                failed_files.append(file.filename)
-
-        # アップロード結果をメッセージで通知
-        if uploaded_files:
-            success_msg = (
-                f"{len(uploaded_files)}個のファイルがアップロードされました: " f"{', '.join(uploaded_files)}"
-            )
-            flash(success_msg, "success")
-        if failed_files:
-            error_msg = (
-                f"{len(failed_files)}個のファイルのアップロードに失敗しました"
-                f"（Excelファイルのみ許可）: {', '.join(failed_files)}"
-            )
-            flash(error_msg, "error")
-
-        # アップロード後、フォームページにリダイレクト
-        return redirect(request.url)
-
-    # GETリクエストの場合、またはPOSTでエラーがあった場合
-    # アップロードフォームを表示するHTMLテンプレートをレンダリング
     return render_template("upload.html")
+
+
+@app.route("/upload", methods=["POST"])
+def upload_files():
+    """
+    顧客データと委託販売売上データのファイルアップロードを一括処理するルートハンドラー
+
+    Returns:
+        アップロード結果をフラッシュメッセージで表示し、フォームページにリダイレクト
+    """
+    # 顧客データの処理
+    if "customer_file" in request.files:
+        customer_file = request.files["customer_file"]
+        if customer_file.filename != "":
+            if customer_file and allowed_file(customer_file.filename):
+                try:
+                    customers_folder = os.path.join(app.config["UPLOAD_FOLDER"], "customers")
+                    if not os.path.exists(customers_folder):
+                        os.makedirs(customers_folder)
+                    filename = secure_filename(customer_file.filename)
+                    customer_file.save(os.path.join(customers_folder, filename))
+                    flash(f"顧客データ: {filename} がアップロードされました", "success")
+                except Exception:
+                    flash(f"顧客データ: {customer_file.filename} のアップロードに失敗しました", "error")
+            else:
+                flash(
+                    f"顧客データ: {customer_file.filename} は許可されていないファイル形式です（Excelファイルのみ許可）",
+                    "error",
+                )
+
+    # 委託販売売上データの処理
+    if "sales_file" in request.files:
+        sales_file = request.files["sales_file"]
+        if sales_file.filename != "":
+            if sales_file and allowed_file(sales_file.filename):
+                try:
+                    sales_folder = os.path.join(app.config["UPLOAD_FOLDER"], "sales")
+                    if not os.path.exists(sales_folder):
+                        os.makedirs(sales_folder)
+                    filename = secure_filename(sales_file.filename)
+                    sales_file.save(os.path.join(sales_folder, filename))
+                    flash(f"委託販売売上データ: {filename} がアップロードされました", "success")
+                except Exception:
+                    flash(f"委託販売売上データ: {sales_file.filename} のアップロードに失敗しました", "error")
+            else:
+                flash(
+                    f"委託販売売上データ: {sales_file.filename} は許可されていないファイル形式です（Excelファイルのみ許可）",
+                    "error",
+                )
+
+    # どちらのファイルも選択されていない場合
+    customer_selected = "customer_file" in request.files and request.files["customer_file"].filename != ""
+    sales_selected = "sales_file" in request.files and request.files["sales_file"].filename != ""
+    if not customer_selected and not sales_selected:
+        flash("少なくとも1つのファイルを選択してください", "error")
+
+    return redirect("/")
+
+
+@app.route("/upload/customers", methods=["POST"])
+def upload_customers():
+    """
+    顧客データのファイルアップロードを処理するルートハンドラー（1ファイル対応）
+
+    Returns:
+        アップロード結果をフラッシュメッセージで表示し、フォームページにリダイレクト
+    """
+    # ファイルがリクエストに存在するか確認
+    if "file" not in request.files:
+        flash("ファイルが選択されていません", "error")
+        return redirect("/")
+
+    file = request.files["file"]
+
+    # ファイル名が空かチェック
+    if file.filename == "":
+        flash("ファイルが選択されていません", "error")
+        return redirect("/")
+
+    # 顧客データ用のサブディレクトリ
+    customers_folder = os.path.join(app.config["UPLOAD_FOLDER"], "customers")
+    if not os.path.exists(customers_folder):
+        os.makedirs(customers_folder)
+
+    if file and allowed_file(file.filename):
+        try:
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(customers_folder, filename))
+            flash(f"顧客データ: {filename} がアップロードされました", "success")
+        except Exception:
+            flash(f"顧客データ: {file.filename} のアップロードに失敗しました", "error")
+    else:
+        flash(
+            f"顧客データ: {file.filename} は許可されていないファイル形式です（Excelファイルのみ許可）",
+            "error",
+        )
+
+    return redirect("/")
+
+
+@app.route("/upload/sales", methods=["POST"])
+def upload_sales():
+    """
+    委託販売売上データのファイルアップロードを処理するルートハンドラー（1ファイル対応）
+
+    Returns:
+        アップロード結果をフラッシュメッセージで表示し、フォームページにリダイレクト
+    """
+    # ファイルがリクエストに存在するか確認
+    if "file" not in request.files:
+        flash("ファイルが選択されていません", "error")
+        return redirect("/")
+
+    file = request.files["file"]
+
+    # ファイル名が空かチェック
+    if file.filename == "":
+        flash("ファイルが選択されていません", "error")
+        return redirect("/")
+
+    # 委託販売売上データ用のサブディレクトリ
+    sales_folder = os.path.join(app.config["UPLOAD_FOLDER"], "sales")
+    if not os.path.exists(sales_folder):
+        os.makedirs(sales_folder)
+
+    if file and allowed_file(file.filename):
+        try:
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(sales_folder, filename))
+            flash(f"委託販売売上データ: {filename} がアップロードされました", "success")
+        except Exception:
+            flash(f"委託販売売上データ: {file.filename} のアップロードに失敗しました", "error")
+    else:
+        flash(
+            f"委託販売売上データ: {file.filename} は許可されていないファイル形式です（Excelファイルのみ許可）",
+            "error",
+        )
+
+    return redirect("/")
 
 
 @app.route("/uploads/<filename>")
