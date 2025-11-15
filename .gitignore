@@ -2,3 +2,10 @@
 .venv
 db.sqlite
 __pycache__/
+instance/
+*.pyc
+*.pyo
+*.pyd
+.Python
+migrations/versions/*.pyc
+.DS_Store
