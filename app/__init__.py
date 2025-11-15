@@ -33,6 +33,8 @@ def create_app(config_name: Optional[str] = None) -> Flask:
         'sqlite:///' + os.path.join(app.instance_path, 'app.db')
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['WTF_CSRF_ENABLED'] = True
+    app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB
     
     # instanceフォルダの作成
     try:
@@ -47,9 +49,15 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     # モデルのインポート（循環参照を避けるため）
     from app import models
     
-    # Blueprintの登録（将来の拡張用）
-    # from app.routes import main
-    # app.register_blueprint(main.main_bp)
+    # Blueprintの登録
+    from app.routes import upload
+    app.register_blueprint(upload.upload_bp)
+    
+    # ルートパスのリダイレクト
+    @app.route('/')
+    def index():
+        from flask import redirect, url_for
+        return redirect(url_for('upload.index'))
     
     return app
 

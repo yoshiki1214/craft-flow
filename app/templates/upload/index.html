@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}ファイルアップロード - 全銀フォーマット変換システム{% endblock %}
+
+{% block extra_js %}
+<script>
+    // フォーム送信後のローディング状態を管理
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+
+        if (form) {
+            // フォーム送信時にローディング表示
+            form.addEventListener('submit', function () {
+                const submitButton = form.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white shadow-md rounded-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">顧客データファイルアップロード</h1>
+
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">アップロード可能なファイル形式</h2>
+            <ul class="list-disc list-inside text-gray-600 space-y-2">
+                <li>Excelファイル (.xlsx)</li>
+                <li>CSVファイル (.csv)</li>
+            </ul>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">必須列</h2>
+            <ul class="list-disc list-inside text-gray-600 space-y-2">
+                <li>顧客名（事業者名、代表者氏名、または customer_name）</li>
+                <li>銀行名（金融機関名、bank_name）または銀行コード（金融機関コード、bank_code）</li>
+                <li>支店名（branch_name）または支店コード（branch_code）</li>
+                <li>口座種別（預金種目、普通、当座、貯蓄、または1、2、4）</li>
+                <li>口座番号（7桁の数字）</li>
+                <li>振込金額（0以上の数値）</li>
+            </ul>
+            <p class="mt-4 text-sm text-gray-500">
+                <strong>注意:</strong> 銀行コード・支店コードは整数型（数値）でも文字列でも対応可能です。
+                整数型の場合は自動的にゼロパディングされます（例: 9 → 0009, 532 → 0532）。
+            </p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-6" x-data="{ uploading: false }" @submit="uploading = true">
+            {{ form.csrf_token }}
+
+            <div class="mb-4">
+                {{ form.file.label(class="block text-sm font-medium text-gray-700 mb-2") }}
+                {{ form.file(class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100") }}
+                {% if form.file.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.file.errors[0] }}</p>
+                {% endif %}
+            </div>
+
+            <div class="flex items-center justify-between">
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center" :disabled="uploading">
+                    <span x-show="!uploading">{{ form.submit.label.text }}</span>
+                    <span x-show="uploading" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        アップロード中...
+                    </span>
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-8 p-4 bg-gray-50 rounded-md">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">ファイル形式の例</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-gray-700">事業者名</th>
+                            <th class="px-4 py-2 text-left text-gray-700">金融機関コード</th>
+                            <th class="px-4 py-2 text-left text-gray-700">支店コード</th>
+                            <th class="px-4 py-2 text-left text-gray-700">預金種目</th>
+                            <th class="px-4 py-2 text-left text-gray-700">口座番号</th>
+                            <th class="px-4 py-2 text-left text-gray-700">振込金額</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-4 py-2 text-gray-600">山田手仕事店</td>
+                            <td class="px-4 py-2 text-gray-600">9</td>
+                            <td class="px-4 py-2 text-gray-600">601</td>
+                            <td class="px-4 py-2 text-gray-600">普通</td>
+                            <td class="px-4 py-2 text-gray-600">8878206</td>
+                            <td class="px-4 py-2 text-gray-600">150000</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2 text-gray-600">村上手作り工房</td>
+                            <td class="px-4 py-2 text-gray-600">532</td>
+                            <td class="px-4 py-2 text-gray-600">807</td>
+                            <td class="px-4 py-2 text-gray-600">当座</td>
+                            <td class="px-4 py-2 text-gray-600">9793190</td>
+                            <td class="px-4 py-2 text-gray-600">38000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="mt-4 text-sm text-gray-500">
+                <strong>注意:</strong> 金融機関コードと支店コードは数値型でも文字列型でも対応可能です。
+                数値型の場合（例: 9, 532）は自動的に4桁・3桁にゼロパディングされます（例: 0009, 0532）。
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
