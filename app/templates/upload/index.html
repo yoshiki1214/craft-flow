@@ -4,19 +4,27 @@
 
 {% block extra_js %}
 <script>
-    // フォーム送信後のローディング状態を管理
+    // 単一ボタンで「選択→即アップロード」を実現
     document.addEventListener('DOMContentLoaded', function () {
-        const form = document.querySelector('form');
+        const form = document.querySelector('form#customer-upload-form');
+        const fileInput = document.getElementById('upload-file-input');
+        const triggerBtn = document.getElementById('single-upload-btn');
 
-        if (form) {
-            // フォーム送信時にローディング表示
-            form.addEventListener('submit', function () {
-                const submitButton = form.querySelector('button[type="submit"]');
-                if (submitButton) {
-                    submitButton.disabled = true;
-                }
-            });
-        }
+        if (!form || !fileInput || !triggerBtn) return;
+
+        // ボタン押下でファイル選択ダイアログを開く
+        triggerBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            fileInput.click();
+        });
+
+        // ファイルが選択されたら自動送信
+        fileInput.addEventListener('change', function () {
+            if (fileInput.files && fileInput.files.length > 0) {
+                triggerBtn.disabled = true;
+                form.submit();
+            }
+        });
     });
 </script>
 {% endblock %}
@@ -50,20 +58,18 @@
             </p>
         </div>
 
-        <form method="POST" enctype="multipart/form-data" class="space-y-6" x-data="{ uploading: false }" @submit="uploading = true">
+        <form id="customer-upload-form" method="POST" enctype="multipart/form-data" class="space-y-6" x-data="{ uploading: false }" @submit="uploading = true">
             {{ form.csrf_token }}
 
-            <div class="mb-4">
-                {{ form.file.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                {{ form.file(class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100") }}
-                {% if form.file.errors %}
-                <p class="mt-1 text-sm text-red-600">{{ form.file.errors[0] }}</p>
-                {% endif %}
-            </div>
+            <!-- ファイル入力は非表示にし、ボタンからトリガーする -->
+            <input id="upload-file-input" name="{{ form.file.name }}" type="file" accept=".xlsx,.csv" class="hidden">
+            {% if form.file.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.file.errors[0] }}</p>
+            {% endif %}
 
-            <div class="flex items-center justify-between">
-                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center" :disabled="uploading">
-                    <span x-show="!uploading">{{ form.submit.label.text }}</span>
+            <div class="flex items-center">
+                <button id="single-upload-btn" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center" :disabled="uploading">
+                    <span x-show="!uploading">アップロード</span>
                     <span x-show="uploading" class="flex items-center">
                         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
