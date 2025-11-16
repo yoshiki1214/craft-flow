@@ -14,7 +14,7 @@
             <h2 class="text-xl font-semibold text-gray-800 mb-4">全銀フォーマット変換</h2>
             <p class="text-sm text-gray-600 mb-8">app/filesディレクトリ内のExcelファイルを全銀フォーマットに変換してダウンロードします</p>
 
-            <form method="POST" action="{{ url_for('upload.convert') }}" x-data="{ loading: false }" @submit="loading = true">
+            <form method="POST" action="{{ url_for('upload.convert') }}" x-data="{ loading: false }" @submit="loading = true; const reset=()=>{ loading=false; window.removeEventListener('focus', reset); }; window.addEventListener('focus', reset, { once: true }); setTimeout(() => { if (loading) reset(); }, 10000)">
                 <!-- オプション項目は隠す（必要に応じて後から追加可能） -->
                 <input type="hidden" name="sheet_name" value="">
                 <input type="hidden" name="requester_code" value="">
