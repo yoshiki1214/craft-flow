@@ -3,5 +3,13 @@
 db.sqlite
 __pycache__/
 instance/
+<<<<<<< HEAD
 *.db
 2.0.36
+=======
+*.pyc
+*.pyo
+*.pyd
+.Python
+migrations/versions/*.pyc
+>>>>>>> 0ba6c74c70245a273989b3356430507d4923e121
