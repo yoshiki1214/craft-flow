@@ -490,4 +490,82 @@ class ZenginConverter:
             raise ZenginFormatError("Excelファイルが空です")
         except Exception as e:
             raise ZenginFormatError(f"ファイル読み込みエラー: {str(e)}")
+    
+    @staticmethod
+    def save_zengin_file(
+        records: List[str],
+        output_dir: str,
+        encoding: str = 'shift_jis',
+        newline: str = '\r\n'
+    ) -> Tuple[str, str]:
+        """
+        全銀フォーマットデータをファイルに保存
+        
+        Args:
+            records: 全銀フォーマットのレコードリスト（120文字固定長）
+            output_dir: 出力ディレクトリのパス
+            encoding: エンコーディング（'utf-8' または 'shift_jis'）
+            newline: 改行コード（'\n' または '\r\n'）
+            
+        Returns:
+            (ファイルパス, ファイル名) のタプル
+            
+        Raises:
+            ZenginFormatError: 保存エラー時
+        """
+        import os
+        
+        # 出力ディレクトリの存在確認と作成
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+        except OSError as e:
+            raise ZenginFormatError(f"出力ディレクトリの作成に失敗しました: {str(e)}")
+        
+        # ファイル名を生成（タイムスタンプ付き）
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"zengin_{timestamp}.txt"
+        filepath = os.path.join(output_dir, filename)
+        
+        # レコードの検証（120文字固定長チェック）
+        for i, record in enumerate(records):
+            if len(record) != ZenginConverter.RECORD_LENGTH:
+                raise ZenginFormatError(
+                    f"レコード {i + 1} の長さが不正です: {len(record)}文字 "
+                    f"(期待値: {ZenginConverter.RECORD_LENGTH}文字)"
+                )
+        
+        # ファイルに書き込み
+        try:
+            # エンコーディングと改行コードの設定
+            if encoding == 'shift_jis':
+                # Shift-JISの場合
+                with open(filepath, 'w', encoding='shift_jis', newline='') as f:
+                    for record in records:
+                        f.write(record)
+                        if newline == '\r\n':
+                            f.write('\r\n')
+                        elif newline == '\n':
+                            f.write('\n')
+                        else:
+                            f.write(newline)
+            else:
+                # UTF-8の場合
+                with open(filepath, 'w', encoding='utf-8', newline='') as f:
+                    for record in records:
+                        f.write(record)
+                        if newline == '\r\n':
+                            f.write('\r\n')
+                        elif newline == '\n':
+                            f.write('\n')
+                        else:
+                            f.write(newline)
+            
+            return filepath, filename
+            
+        except UnicodeEncodeError as e:
+            raise ZenginFormatError(f"文字エンコーディングエラー: {str(e)}")
+        except IOError as e:
+            raise ZenginFormatError(f"ファイル書き込みエラー: {str(e)}")
+        except Exception as e:
+            raise ZenginFormatError(f"予期しないエラー: {str(e)}")
 
