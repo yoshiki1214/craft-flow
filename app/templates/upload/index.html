@@ -3,16 +3,25 @@
 {% block title %}全銀フォーマット変換{% endblock %}
 
 {% block content %}
-<div class="px-4 py-6 sm:px-0">
-    <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">全銀フォーマット変換</h1>
-        <p class="text-gray-600">app/filesディレクトリ内の顧客データを全銀フォーマット（固定長テキストファイル）に変換します</p>
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <!-- ヘッダーセクション -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">全銀フォーマット変換</h1>
+        <p class="text-gray-600 text-lg">app/filesディレクトリ内のExcelファイルを全銀フォーマット（固定長テキストファイル）に変換します</p>
     </div>
 
-    <div class="bg-white shadow rounded-lg p-8">
+    <!-- メイン変換カード -->
+    <div class="bg-gradient-to-br from-white to-gray-50 shadow-xl rounded-2xl p-8 mb-8 border border-gray-200">
         <div class="text-center">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">全銀フォーマット変換</h2>
-            <p class="text-sm text-gray-600 mb-8">app/filesディレクトリ内のExcelファイルを全銀フォーマットに変換してダウンロードします</p>
+            <div class="mb-6">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg mb-4">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">全銀フォーマット変換</h2>
+                <p class="text-gray-600">app/filesディレクトリ内のExcelファイルを全銀フォーマットに変換してダウンロードします</p>
+            </div>
 
             <form method="POST" action="{{ url_for('upload.convert') }}" x-data="{ loading: false }" @submit="loading = true; const reset=()=>{ loading=false; window.removeEventListener('focus', reset); }; window.addEventListener('focus', reset, { once: true }); setTimeout(() => { if (loading) reset(); }, 10000)">
                 <!-- オプション項目は隠す（必要に応じて後から追加可能） -->
@@ -21,13 +30,19 @@
                 <input type="hidden" name="requester_name" value="">
 
                 <!-- メインの変換ボタン -->
-                <button type="submit" :disabled="loading" class="inline-flex items-center justify-center px-12 py-6 border border-transparent rounded-xl shadow-xl text-2xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95">
-                    <svg x-show="!loading" class="w-8 h-8 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
-                    <span x-show="!loading">全銀データを出力</span>
+                <button 
+                    type="submit" 
+                    :disabled="loading" 
+                    class="group relative inline-flex items-center justify-center px-12 py-6 text-xl font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-2xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 active:scale-95"
+                >
+                    <span x-show="!loading" class="flex items-center">
+                        <svg class="w-8 h-8 mr-3 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        全銀データを出力
+                    </span>
                     <span x-show="loading" class="flex items-center">
-                        <svg class="animate-spin -ml-1 mr-4 h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
@@ -38,18 +53,112 @@
         </div>
     </div>
 
-    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 class="text-lg font-semibold text-blue-900 mb-2">使用上の注意</h3>
-        <ul class="list-disc list-inside space-y-1 text-sm text-blue-800">
-            <li>app/filesディレクトリ内のExcelファイル（.xlsx, .xls）が自動的に読み込まれます</li>
-            <li>Excelファイルの列名は以下の日本語列名に対応しています：<code class="bg-blue-100 px-1 rounded">金融機関コード</code>, <code class="bg-blue-100 px-1 rounded">支店コード</code>, <code class="bg-blue-100 px-1 rounded">口座番号</code>, <code class="bg-blue-100 px-1 rounded">口座名義（カナ）</code>, <code class="bg-blue-100 px-1 rounded">振込金額</code>, <code class="bg-blue-100 px-1 rounded">預金種目</code></li>
-            <li>金融機関コード：4桁、支店コード：3桁、口座番号：7桁の数値である必要があります</li>
-            <li>預金種目：「普通」（1に変換）または「当座」（2に変換）</li>
-            <li>振込金額：10桁以内の数値（0より大きい値）</li>
-            <li>受取人名（口座名義）：全角カナ、30文字以内</li>
-            <li>出力ファイルはShift-JISエンコーディングのテキストファイルです（ファイル名：zengin_YYYYMMDD.txt）</li>
-            <li>実際の全銀フォーマット仕様書を参照して、必要に応じて調整してください</li>
-        </ul>
+    <!-- 情報カード（2カラムレイアウト） -->
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <!-- 対応ファイル形式カード -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <div class="flex items-center mb-4">
+                <div class="bg-blue-100 rounded-lg p-3 mr-3">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">対応ファイル形式</h3>
+            </div>
+            <ul class="space-y-3">
+                <li class="flex items-center text-gray-700">
+                    <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    Excelファイル (.xlsx, .xls)
+                </li>
+                <li class="flex items-center text-gray-700">
+                    <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    app/filesディレクトリ内のファイルが自動読み込み
+                </li>
+            </ul>
+        </div>
+
+        <!-- 必須列カード -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <div class="flex items-center mb-4">
+                <div class="bg-purple-100 rounded-lg p-3 mr-3">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">必須列名</h3>
+            </div>
+            <div class="space-y-2">
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">金融機関コード</span>
+                    <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">支店コード</span>
+                    <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">口座番号</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">口座名義（カナ）</span>
+                    <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">振込金額</span>
+                    <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded-full">預金種目</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用上の注意カード -->
+    <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+        <div class="flex items-center mb-6">
+            <div class="bg-amber-100 rounded-lg p-3 mr-3">
+                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800">使用上の注意</h3>
+        </div>
+        <div class="space-y-4">
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 class="font-semibold text-blue-900 mb-2 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        データ形式
+                    </h4>
+                    <ul class="text-sm text-blue-800 space-y-1">
+                        <li>• 金融機関コード：4桁の数値</li>
+                        <li>• 支店コード：3桁の数値</li>
+                        <li>• 口座番号：7桁の数値</li>
+                        <li>• 振込金額：10桁以内の数値（0より大きい値）</li>
+                    </ul>
+                </div>
+                <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <h4 class="font-semibold text-purple-900 mb-2 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        預金種目
+                    </h4>
+                    <ul class="text-sm text-purple-800 space-y-1">
+                        <li>• 「普通」→ 1に変換</li>
+                        <li>• 「当座」→ 2に変換</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 class="font-semibold text-green-900 mb-2 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    その他
+                </h4>
+                <ul class="text-sm text-green-800 space-y-1">
+                    <li>• 受取人名（口座名義）：全角カナ、30文字以内</li>
+                    <li>• 出力ファイル：Shift-JISエンコーディングのテキストファイル（ファイル名：zengin_YYYYMMDD.txt）</li>
+                    <li>• 実際の全銀フォーマット仕様書を参照して、必要に応じて調整してください</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
