@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 # ベースディレクトリ
-basedir = Path(__file__).parent.absolute() # このファイルがあるディレクトリ (craft-flow)
+basedir = Path(__file__).parent.absolute()
 
 
 class Config:
@@ -14,11 +14,11 @@ class Config:
 
     SECRET_KEY = os.environ.get("SECRET_KEY") or "dev-secret-key-change-in-production"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or f'sqlite:///{basedir / "instance" / "app.db"}'
 
     @staticmethod
     def init_app(app):
-        # instanceフォルダを基準にデータベースパスを設定
-        app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL") or f"sqlite:///{os.path.join(app.instance_path, 'app.db')}"
+        pass
 
 
 class DevelopmentConfig(Config):

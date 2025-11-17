@@ -3,6 +3,7 @@ Flask Application Factory
 
 Application Factoryパターンを使用してFlaskアプリケーションを生成
 """
+import os
 import locale
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -26,7 +27,11 @@ def create_app(config_name: str = 'default') -> Flask:
     Returns:
         Flask: 設定済みのFlaskアプリケーションインスタンス
     """
-    app = Flask(__name__)
+    app = Flask(__name__, instance_relative_config=True)
+    try:
+        os.makedirs(app.instance_path)
+    except OSError:
+        pass
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
 

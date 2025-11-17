@@ -52,10 +52,6 @@ def runner(app):
 def sample_program(app):
     """サンプルの体験プログラムフィクスチャ"""
     with app.app_context():
-        # 既存のプログラムを削除してから作成（重複を避ける）
-        ExperienceProgram.query.delete()
-        db.session.commit()
-        
         program = ExperienceProgram(
             name='テストプログラム',
             description='テスト用の体験プログラムです。',
@@ -103,4 +99,3 @@ def sample_reservation(app, sample_program):
         reservation_id = reservation.id
         db.session.expunge(reservation)
         return reservation_id
-

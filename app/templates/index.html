@@ -1,40 +1,100 @@
 {% extends 'base.html' %}
 
-{% block title %}体験プログラム一覧 - Craft Flow{% endblock %}
+{% block title %}予約カレンダー - Craft Flow{% endblock %}
 
-{% block content %}
-<div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-2">体験プログラム一覧</h1>
-    <p class="text-gray-600">お気に入りの体験プログラムを見つけて、予約しましょう</p>
-</div>
+{% block extra_head %}
+{# FullCalendar.jsのライブラリを読み込み #}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.css' rel='stylesheet' />
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/locales/ja.global.min.js'></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var calendarEl = document.getElementById('calendar');
+        if (!calendarEl) {
+            console.error('カレンダー要素が見つかりません');
+            return;
+        }
 
-{% if programs %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for program in programs %}
-        <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            <div class="p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-2">{{ program.name }}</h2>
-                <p class="text-gray-600 mb-4 line-clamp-3">{{ program.description }}</p>
-                <div class="flex justify-between items-center mb-4">
-                    <div class="text-2xl font-bold text-blue-600">
-                        ¥{{ program.price | comma }}
-                    </div>
-                    <div class="text-sm text-gray-500">
-                        定員: {{ program.capacity }}名
-                    </div>
-                </div>
-                <a href="{{ url_for('reservation.create', program_id=program.id) }}" 
-                   class="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
-                    予約する
-                </a>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-{% else %}
-    <div class="text-center py-12">
-        <p class="text-gray-600 text-lg">体験プログラムがまだ登録されていません。</p>
-    </div>
-{% endif %}
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'ja',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listWeek'
+            },
+            events: function (fetchInfo, successCallback, failureCallback) {
+                fetch('{{ url_for("reservation.api_events") }}?start=' + fetchInfo.startStr + '&end=' + fetchInfo.endStr)
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('HTTP error! status: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        successCallback(data);
+                    })
+                    .catch(function (error) {
+                        console.error('カレンダーイベントの取得に失敗しました:', error);
+                        failureCallback(error);
+                    });
+            },
+            eventClick: function (info) {
+                info.jsEvent.preventDefault();
+
+                // 拡張プロパティから情報を取得
+                var extendedProps = info.event.extendedProps;
+                var programId = extendedProps.program_id;
+                var date = extendedProps.date;
+
+                // URLが設定されている場合はそれを使用、なければ手動で構築
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                } else if (programId && date) {
+                    // URLが設定されていない場合、手動で構築
+                    var url = '/create/' + programId + '?date=' + date;
+                    window.location.href = url;
+                } else {
+                    console.warn('予約フォームを開くための情報が不足しています');
+                }
+            },
+            height: 'auto',
+            firstDay: 1 // 月曜日から開始
+        });
+        calendar.render();
+    });
+</script>
 {% endblock %}
 
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left Column: Calendar -->
+    <div class="lg:col-span-2">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">予約カレンダー</h1>
+            <p class="text-gray-600">ご希望のプログラムと日付を選択して予約してください。</p>
+        </div>
+        <div id='calendar' class="bg-white p-4 rounded-lg shadow-md"></div>
+    </div>
+
+    <!-- Right Column: Program List -->
+    <div>
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">体験プログラム一覧</h2>
+            <p class="text-gray-600">プログラムを選んで予約もできます。</p>
+        </div>
+        <div class="space-y-4">
+            {% for program in programs %}
+            <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+                <h3 class="text-lg font-bold text-gray-800 truncate" title="{{ program.name }}">{{ program.name }}</h3>
+                <p class="text-sm text-gray-500 mb-2">定員: {{ program.capacity }}名 / 料金: ¥{{ program.price | comma }}</p>
+                <p class="text-gray-600 text-sm mb-3 line-clamp-2 break-all">{{ program.description }}</p>
+                <a href="{{ url_for('reservation.create', program_id=program.id) }}" class="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium">
+                    このプログラムで予約
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

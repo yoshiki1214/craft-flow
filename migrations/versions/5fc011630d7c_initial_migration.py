@@ -1,8 +1,8 @@
-"""feat: add reservation tables
+"""Initial migration
 
-Revision ID: f723214274a8
+Revision ID: 5fc011630d7c
 Revises: 
-Create Date: 2025-11-15 16:48:37.867093
+Create Date: 2025-11-17 10:48:10.076646
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f723214274a8'
+revision = '5fc011630d7c'
 down_revision = None
 branch_labels = None
 depends_on = None

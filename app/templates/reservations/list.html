@@ -3,52 +3,61 @@
 {% block title %}予約一覧 - Craft Flow{% endblock %}
 
 {% block content %}
-<div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-2">予約一覧</h1>
-    <p class="text-gray-600">すべての予約を表示します</p>
+<div class="mb-8 flex justify-between items-center">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">予約一覧</h1>
+        <p class="text-gray-600">すべての予約を表示します</p>
+    </div>
+    <div>
+        <a href="{{ url_for('reservation.index') }}" class="inline-block bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors font-medium">
+            カレンダー表示に切替
+        </a>
+    </div>
 </div>
 
 {% if reservations %}
-    <div class="bg-white rounded-lg shadow-md overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">プログラム</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">お名前</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">予約日</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">参加人数</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% for reservation in reservations %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{{ reservation.id }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ reservation.program.name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ reservation.name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ reservation.reservation_date.strftime('%Y年%m月%d日') }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ reservation.number_of_participants }}名</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <a href="{{ url_for('reservation.show', id=reservation.id) }}" class="text-blue-600 hover:text-blue-900">詳細</a>
-                        <a href="{{ url_for('reservation.edit', id=reservation.id) }}" class="text-green-600 hover:text-green-900">編集</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">プログラム</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">お名前</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">予約日</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">参加人数</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            {% for reservation in reservations %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{{ reservation.id }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ reservation.program.name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ reservation.name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ reservation.reservation_date.strftime('%Y年%m月%d日') }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ reservation.number_of_participants }}名</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <a href="{{ url_for('reservation.show', id=reservation.id) }}" class="text-blue-600 hover:text-blue-900">詳細</a>
+                    <a href="{{ url_for('reservation.edit', id=reservation.id) }}" class="text-green-600 hover:text-green-900">編集</a>
+                    <form method="POST" action="{{ url_for('reservation.delete', id=reservation.id) }}" class="inline-block">
+                        <button type="submit" onclick="return confirm('本当にこの予約を削除しますか？')" class="text-red-600 hover:text-red-900">削除
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% else %}
-    <div class="text-center py-12 bg-white rounded-lg shadow-md">
-        <p class="text-gray-600 text-lg">予約がまだありません。</p>
-    </div>
+<div class="text-center py-12 bg-white rounded-lg shadow-md">
+    <p class="text-gray-600 text-lg">予約がまだありません。</p>
+</div>
 {% endif %}
 
 <div class="mt-6">
-    <a href="{{ url_for('reservation.index') }}" 
-       class="inline-block bg-gray-200 text-gray-800 py-2 px-6 rounded-md hover:bg-gray-300 transition-colors font-medium">
+    <a href="{{ url_for('reservation.index') }}" class="inline-block bg-gray-200 text-gray-800 py-2 px-6 rounded-md hover:bg-gray-300 transition-colors font-medium">
         プログラム一覧に戻る
     </a>
 </div>
 {% endblock %}
-

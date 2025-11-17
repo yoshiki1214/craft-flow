@@ -82,3 +82,47 @@ AIを設計・レビュー補助に活用
 課題2：アップロード／集計・DL
 課題3：アップロード／請求書発行
 課題4：カレンダー／予約登録／詳細／編集
+        染め物屋高橋向け機能: 4. 予約管理機能
+        [ ] 予約登録フォーム
+        [ ] 予約データの保存
+        [ ] カレンダー表示
+        [ ] ダブルブッキングチェック
+         予約データの一元管理アプリ
+    来店予約を登録方法が複数あり、それを一元管理する
+    現在の予約ルートは以下の通り
+    - じゃらん等の予約サイト
+    - 自社への電話
+    - 自社の予約サイト
+    - 業務委託先への電話
+    一元管理はデータベースで行う
+    予約状況をカレンダー表示できるようにする
+        ライブラリ
+基本構成:
+Flask または FastAPI: Webフレームワーク
+SQLAlchemy: ORM（データベース操作）
+PostgreSQL / MySQL: データベース（選択）
+追加機能:
+FullCalendar.js: カレンダー表示（フロントエンド）
+requests: 外部予約サイトAPI連携
+BeautifulSoup4: スクレイピングが必要な場合
+Celery: バックグラウンドタスク処理（定期的なデータ取得等）
+ルーティング
+/reservations/ - 予約カレンダー
+/reservations/list - 予約一覧（リスト）
+/reservations/{id} - 予約詳細
+/reservations/create - 予約登録
+/reservations/{id}/edit - 予約編集
+/reservations/statistics - 統計情報
+/reservations/settings - 設定
+/reservations/customers - 顧客一覧
+/reservations/customers/{id} - 顧客詳細
+API エンドポイント
+/reservations/api/calendar - カレンダーデータ取得（JSON）
+/reservations/api/availability - 予約可能枠取得（JSON）
+/reservations/api/book - 予約登録（JSON）
+/reservations/import/external - 外部サイト連携（Webhook）
+共通で便利なライブラリ
+
+python-dotenv: 環境変数管理
+loguru: ロギング
+pytest: テスト

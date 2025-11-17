@@ -21,8 +21,7 @@ class Reservation(db.Model):
     reservation_date = db.Column(db.Date, nullable=False)
     number_of_participants = db.Column(db.Integer, nullable=False)
 
-    program = db.relationship('ExperienceProgram', backref=db.backref('reservations', lazy=True))
+    program = db.relationship('ExperienceProgram', backref=db.backref('reservations', lazy=True, cascade="all, delete-orphan"))
 
     def __repr__(self):
         return f'<Reservation {self.name} for program_id={self.program_id}>'
-
