@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 委託販売精算書を生成するためのモジュール
 Excelファイルを操作して、顧客ごとの精算書シートを作成します。
@@ -212,7 +211,8 @@ class SettlementGenerator:
         # --- 顧客情報の書き込み ---
         ws["A10"] = f"{customer_data.get('会社名', '')} 様"  # 会社名
         # 郵便番号と住所を結合して書き込み
-        ws["A11"] = f"〒{customer_data.get('郵便番号', '')} {customer_data.get('住所', '')}"
+        ws["A11"] = f"〒{customer_data.get('郵便番号', '')}"
+        ws["A12"] = f"{customer_data.get('住所', '')}"
         ws["C10"] = payment_amount  # お支払金額（右上に表示）
 
         # 精算期間を書き込み
