@@ -214,9 +214,10 @@ class SettlementGenerator:
         # 郵便番号と住所を結合して書き込み
         ws["A11"] = f"〒{customer_data.get('郵便番号', '')}"
         ws["A12"] = f"{customer_data.get('住所', '')}"
-        # C10にお支払金額を書き込む（C31と同じ値になるように設定）
-        # payment_amountは「売上金額 - 手数料 + 消費税 - 振込手数料」で計算されている
+        # C10にお支払金額を書き込む（売上金額 - 手数料 + 消費税 - 振込手数料」で計算)
+        # 数値として書き込み、Excelの通貨フォーマットを適用（例: ¥636,592）
         ws["C10"] = payment_amount  # お支払金額（右上に表示）
+        ws["C10"].number_format = "¥#,##0"  # 通貨フォーマット（¥記号と3桁区切り）
 
         # 精算期間を書き込み
         ws["A15"] = (
@@ -239,33 +240,25 @@ class SettlementGenerator:
             ws[f"A{row}"] = sale.get("商品コード", "")  # A列: 商品コード
             ws[f"B{row}"] = sale.get("商品名", "")  # B列: 商品名
 
-            # 単価を3桁区切りで表示（例: 1000 → "1,000"）
+            # 単価を数値として書き込み、Excelの数値フォーマットで3桁区切り表示
+            # 例: 1000 → 1,000（数値として扱われる）
             unit_price = sale.get("単価", "")
             if unit_price != "":
-                try:
-                    # 数値に変換してから3桁区切りでフォーマット
-                    unit_price_value = float(unit_price) if isinstance(unit_price, str) else float(unit_price)
-                    # 小数点以下なしで3桁区切り
-                    ws[f"C{row}"] = f"{unit_price_value:,.0f}"
-                except (ValueError, TypeError):
-                    ws[f"C{row}"] = unit_price  # 変換できない場合はそのまま
+                # 数値として書き込み、3桁区切りの数値フォーマットを適用
+                ws[f"C{row}"] = unit_price
+                ws[f"C{row}"].number_format = "#,##0"
             else:
                 ws[f"C{row}"] = ""
 
             ws[f"D{row}"] = sale.get("販売数", "")  # D列: 販売数
 
-            # 売上金額を3桁区切りで表示（例: 10000 → "10,000"）
+            # 売上金額を数値として書き込み、Excelの数値フォーマットで3桁区切り表示
+            # 例: 10000 → 10,000（数値として扱われる）
             sales_amount = sale.get("売上金額", "")
             if sales_amount != "":
-                try:
-                    # 数値に変換してから3桁区切りでフォーマット
-                    sales_amount_value = (
-                        float(sales_amount) if isinstance(sales_amount, str) else float(sales_amount)
-                    )
-                    # 小数点以下なしで3桁区切り
-                    ws[f"E{row}"] = f"{sales_amount_value:,.0f}"
-                except (ValueError, TypeError):
-                    ws[f"E{row}"] = sales_amount  # 変換できない場合はそのまま
+                # 数値として書き込み、 3桁区切りの数値フォーマットを適用
+                ws[f"E{row}"] = sales_amount
+                ws[f"E{row}"].number_format = "#,##0"
             else:
                 ws[f"E{row}"] = ""
 
