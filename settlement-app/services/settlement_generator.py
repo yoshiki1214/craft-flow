@@ -146,6 +146,7 @@ class SettlementGenerator:
         # 消費税 = (売上金額 - 手数料) × 10%
         commission_tax = int((total_sales - commission_fee) * 0.1)
         # お支払金額 = 売上金額 - 手数料 + 消費税 - 振込手数料
+        # この計算式でC31の値が計算されるため、C10にも同じ値を設定する
         payment_amount = total_sales - commission_fee + commission_tax - bank_transfer_fee
 
         # 計算したデータをExcelシートに書き込む
@@ -213,6 +214,8 @@ class SettlementGenerator:
         # 郵便番号と住所を結合して書き込み
         ws["A11"] = f"〒{customer_data.get('郵便番号', '')}"
         ws["A12"] = f"{customer_data.get('住所', '')}"
+        # C10にお支払金額を書き込む（C31と同じ値になるように設定）
+        # payment_amountは「売上金額 - 手数料 + 消費税 - 振込手数料」で計算されている
         ws["C10"] = payment_amount  # お支払金額（右上に表示）
 
         # 精算期間を書き込み
@@ -235,20 +238,62 @@ class SettlementGenerator:
             # f"A{row}": f文字列を使って動的にセル参照を作成（例: "A17", "A18"）
             ws[f"A{row}"] = sale.get("商品コード", "")  # A列: 商品コード
             ws[f"B{row}"] = sale.get("商品名", "")  # B列: 商品名
-            ws[f"C{row}"] = sale.get("単価", "")  # C列: 単価
+
+            # 単価を3桁区切りで表示（例: 1000 → "1,000"）
+            unit_price = sale.get("単価", "")
+            if unit_price != "":
+                try:
+                    # 数値に変換してから3桁区切りでフォーマット
+                    unit_price_value = float(unit_price) if isinstance(unit_price, str) else float(unit_price)
+                    # 小数点以下なしで3桁区切り
+                    ws[f"C{row}"] = f"{unit_price_value:,.0f}"
+                except (ValueError, TypeError):
+                    ws[f"C{row}"] = unit_price  # 変換できない場合はそのまま
+            else:
+                ws[f"C{row}"] = ""
+
             ws[f"D{row}"] = sale.get("販売数", "")  # D列: 販売数
-            ws[f"E{row}"] = sale.get("売上金額", "")  # E列: 売上金額
+
+            # 売上金額を3桁区切りで表示（例: 10000 → "10,000"）
+            sales_amount = sale.get("売上金額", "")
+            if sales_amount != "":
+                try:
+                    # 数値に変換してから3桁区切りでフォーマット
+                    sales_amount_value = (
+                        float(sales_amount) if isinstance(sales_amount, str) else float(sales_amount)
+                    )
+                    # 小数点以下なしで3桁区切り
+                    ws[f"E{row}"] = f"{sales_amount_value:,.0f}"
+                except (ValueError, TypeError):
+                    ws[f"E{row}"] = sales_amount  # 変換できない場合はそのまま
+            else:
+                ws[f"E{row}"] = ""
 
         # --- 計算結果の書き込み ---
         # C27に小計を書き込む
         ws["C27"] = total_sales  # 売上合計金額
 
         # --- 手数料の書き込み ---
-        # 手数料率を表示用の文字列に変換（"10%" の形式にする）
-        commission_rate_display = customer_data.get("手数料率", "0%")
-        # 文字列でない、または"%"が含まれていない場合は、"%"を追加
-        if not isinstance(commission_rate_display, str) or "%" not in commission_rate_display:
-            commission_rate_display = f"{commission_rate_display}%"
+        # 手数料率を表示用の文字列に変換（Excelデータは数値形式、例: 0.2 → "20%"）
+        commission_rate_raw = customer_data.get("手数料率", "0")
+
+        # 数値の場合は100倍して%を付ける（例: 0.2 → "20%"）
+        # int()で整数に変換して小数点以下を表示しない
+        if isinstance(commission_rate_raw, (int, float)):
+            commission_rate_display = f"{int(commission_rate_raw * 100)}%"
+        else:
+            # 文字列の場合は数値に変換してから100倍する
+            try:
+                rate_value = float(str(commission_rate_raw).strip("%"))
+                # "%"が含まれていた場合は既に%形式なので、そのまま使用
+                if "%" in str(commission_rate_raw):
+                    commission_rate_display = str(commission_rate_raw)
+                else:
+                    # 数値形式の場合は100倍して%を付ける（整数で表示）
+                    commission_rate_display = f"{int(rate_value * 100)}%"
+            except (ValueError, TypeError):
+                # 変換できない場合はデフォルト値を使用
+                commission_rate_display = "0%"
 
         # 委託販売手数料
         ws["A28"] = f"委託販売手数料 ({commission_rate_display})"  # A28手数料のラベル
@@ -260,7 +305,8 @@ class SettlementGenerator:
         # 振込手数料
         ws["E30"] = -bank_transfer_fee  # マイナス値で表示
 
-        # 支払金額
+        # 支払金額（C10と同じ値になるように設定）
+        # payment_amountは「売上金額 - 手数料 + 消費税 - 振込手数料」で計算されている
         ws["E31"] = payment_amount  # 最終的な支払金額
 
         # --- 振込情報の書き込み ---
