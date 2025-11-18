@@ -1,3 +1,4 @@
+
 """Flaskアプリケーションの起動スクリプト"""
 from app import create_app
 
