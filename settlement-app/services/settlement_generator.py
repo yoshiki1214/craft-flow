@@ -130,22 +130,30 @@ class SettlementGenerator:
             total_sales = aggregated_df["売上金額"].sum()
 
         # --- 手数料と支払金額の計算 ---
-        # 顧客データから手数料率を取得（文字列形式、例："10%" または "0.1"）
-        commission_rate_str = str(customer_data.get("手数料率", "0"))
-        # 手数料率を数値に変換
-        # "%"が含まれている場合は、それを取り除いて100で割る（例："10%" → 0.1）
-        # 含まれていない場合は、そのまま数値に変換（例："0.1" → 0.1）
-        commission_rate = (
-            float(commission_rate_str.strip("%")) / 100
-            if "%" in commission_rate_str
-            else float(commission_rate_str)
-        )
+        # 顧客データから手数料率を取得（数値形式、例: 0.2 または文字列形式 "0.2"）
+        commission_rate_raw = customer_data.get("手数料率", 0)
 
-        # 委託販売手数料 = 売上金額 × 手数料率
+        # 手数料率を数値に変換
+        if isinstance(commission_rate_raw, (int, float)):
+            # 既に数値の場合はそのまま使用
+            commission_rate = float(commission_rate_raw)
+        else:
+            # 文字列の場合は変換
+            commission_rate_str = str(commission_rate_raw).strip()
+            # "%"が含まれている場合は、それを取り除いて100で割る（例："20%" → 0.2）
+            # 含まれていない場合は、そのまま数値に変換（例："0.2" → 0.2）
+            commission_rate = (
+                float(commission_rate_str.strip("%")) / 100
+                if "%" in commission_rate_str
+                else float(commission_rate_str)
+            )
+
+        # 委託販売手数料 = C27（小計）× 手数料率
+        # total_salesはC27セルに書き込まれる小計の値
         commission_fee = int(total_sales * commission_rate)
-        # 消費税 = (売上金額 - 手数料) × 10%
+        # 消費税 = (C27（小計）- 手数料) × 10%
         commission_tax = int((total_sales - commission_fee) * 0.1)
-        # お支払金額 = 売上金額 - 手数料 + 消費税 - 振込手数料
+        # お支払金額 = C27（小計）- 手数料 + 消費税 - 振込手数料
         # この計算式でC31の値が計算されるため、C10にも同じ値を設定する
         payment_amount = total_sales - commission_fee + commission_tax - bank_transfer_fee
 
@@ -290,17 +298,21 @@ class SettlementGenerator:
 
         # 委託販売手数料
         ws["A28"] = f"委託販売手数料 ({commission_rate_display})"  # A28手数料のラベル
-        ws["E28"] = -commission_fee  # マイナス値で表示（引き算の意味）
+        ws["C28"] = -commission_fee  # マイナス値で表示（引き算の意味）
+        ws["C28"].number_format = "#,##0"  # 3桁区切りの数値フォーマットを適用
 
         # 消費税額
-        ws["E29"] = commission_tax  # 消費税額
+        ws["C29"] = commission_tax  # 消費税額
+        ws["C29"].number_format = "#,##0"  # 3桁区切りの数値フォーマットを適用
 
         # 振込手数料
-        ws["E30"] = -bank_transfer_fee  # マイナス値で表示
+        ws["C30"] = -bank_transfer_fee  # マイナス値で表示
+        ws["C30"].number_format = "#,##0"  # 3桁区切りの数値フォーマットを適用
 
         # 支払金額（C10と同じ値になるように設定）
         # payment_amountは「売上金額 - 手数料 + 消費税 - 振込手数料」で計算されている
-        ws["E31"] = payment_amount  # 最終的な支払金額
+        ws["C31"] = payment_amount  # 最終的な支払金額
+        ws["C31"].number_format = "¥#,##0"  # 通貨フォーマット（¥記号と3桁区切り）
 
         # --- 振込情報の書き込み ---
         # A33に振込情報を書き込む
