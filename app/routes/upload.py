@@ -6,6 +6,7 @@ app/filesディレクトリ内の顧客データを全銀フォーマットに�
 from flask import Blueprint, render_template, request, flash, redirect, url_for, send_file, current_app
 from werkzeug.utils import secure_filename
 import os
+import re
 from datetime import datetime
 from app.utils.zengin import ZenginConverter, ZenginFormatError
 
@@ -21,10 +22,106 @@ def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def extract_datetime_from_filename(filename: str, output_dir: str = None) -> datetime:
+    """
+    ファイル名から日時を抽出
+    
+    Args:
+        filename: zengin_YYYYMMDD_HHMMSS.txt形式のファイル名
+        output_dir: 出力ディレクトリのパス（オプション）
+        
+    Returns:
+        抽出された日時（datetimeオブジェクト）、抽出できない場合はファイルの作成日時
+    """
+    # zengin_YYYYMMDD_HHMMSS.txt形式のパターン
+    pattern = r'zengin_(\d{8})_(\d{6})\.txt'
+    match = re.match(pattern, filename)
+    
+    if match:
+        date_str = match.group(1)  # YYYYMMDD
+        time_str = match.group(2)  # HHMMSS
+        
+        try:
+            # 日時文字列をパース
+            dt = datetime.strptime(f'{date_str}_{time_str}', '%Y%m%d_%H%M%S')
+            return dt
+        except ValueError:
+            # パースに失敗した場合はファイルの作成日時を使用
+            pass
+    
+    # パターンに一致しない、またはパースに失敗した場合はファイルの作成日時を使用
+    if output_dir:
+        try:
+            filepath = os.path.join(output_dir, filename)
+            if os.path.exists(filepath):
+                timestamp = os.path.getctime(filepath)
+                return datetime.fromtimestamp(timestamp)
+        except Exception:
+            pass
+    
+    # デフォルト値として現在の日時を返す
+    return datetime.now()
+
+
+def get_conversion_history() -> list:
+    """
+    output/ディレクトリ内の全銀フォーマットファイルの履歴を取得
+    
+    Returns:
+        ファイル情報のリスト（新しい順にソート）
+        各要素は {'filename': str, 'datetime': datetime, 'formatted_datetime': str} の形式
+    """
+    output_dir = current_app.config.get('OUTPUT_FOLDER', os.path.join(current_app.instance_path, 'outputs'))
+    
+    if not os.path.exists(output_dir):
+        return []
+    
+    history = []
+    
+    # output/ディレクトリ内のファイルを取得
+    for filename in os.listdir(output_dir):
+        # .txtファイルのみを対象
+        if filename.endswith('.txt') and filename.startswith('zengin_'):
+            filepath = os.path.join(output_dir, filename)
+            
+            # ファイルのみを対象（ディレクトリは除外）
+            if os.path.isfile(filepath):
+                dt = extract_datetime_from_filename(filename, output_dir)
+                
+                # 日時をフォーマット（YYYY年MM月DD日 HH:MM:SS）
+                formatted_dt = dt.strftime('%Y年%m月%d日 %H:%M:%S')
+                
+                history.append({
+                    'filename': filename,
+                    'datetime': dt,
+                    'formatted_datetime': formatted_dt
+                })
+    
+    # 新しい順にソート（datetimeで降順）
+    history.sort(key=lambda x: x['datetime'], reverse=True)
+    
+    return history
+
+
 @upload_bp.route('/')
 def index():
     """全銀フォーマット変換画面を表示"""
     return render_template('upload/index.html')
+
+
+@upload_bp.route('/history')
+def history():
+    """変換履歴一覧画面を表示"""
+    try:
+        history_list = get_conversion_history()
+        return render_template('upload/history.html', history=history_list)
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        error_msg = f'履歴取得エラー: {str(e)}'
+        current_app.logger.error(f'{error_msg}\n{error_detail}')
+        flash(error_msg, 'error')
+        return redirect(url_for('upload.index'))
 
 
 @upload_bp.route('/success')

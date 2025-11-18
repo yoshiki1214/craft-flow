@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}変換履歴 - 全銀フォーマット変換{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-6 py-12">
+    <!-- ヘッダーセクション -->
+    <div class="mb-16 text-center">
+        <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-3xl shadow-xl mb-6">
+            <svg class="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        <h1 class="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600 mb-5 leading-tight">変換履歴</h1>
+        <p class="text-gray-700 text-2xl max-w-3xl mx-auto leading-relaxed">過去に変換した全銀フォーマットファイルの一覧</p>
+    </div>
+
+    <!-- 履歴一覧カード -->
+    <div class="bg-gradient-to-br from-white via-blue-50/30 to-cyan-50/30 shadow-2xl rounded-3xl p-10 mb-10 border-2 border-blue-100 backdrop-blur-sm">
+        {% if history %}
+            <div class="space-y-5">
+                {% for item in history %}
+                    <div class="bg-white rounded-2xl p-6 border-2 border-blue-100 hover:border-blue-400 shadow-md hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.01] hover:-translate-y-1">
+                        <div class="flex items-center justify-between gap-6">
+                            <!-- ファイル情報 -->
+                            <div class="flex items-center flex-1 min-w-0 gap-5">
+                                <div class="flex-shrink-0 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl p-4 shadow-lg">
+                                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-xl font-bold text-gray-900 mb-2 break-all leading-tight">{{ item.filename }}</h3>
+                                    <p class="text-base text-gray-600 flex items-center">
+                                        <svg class="w-5 h-5 mr-2 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span class="font-medium">{{ item.formatted_datetime }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- ダウンロードボタン -->
+                            <div class="flex-shrink-0">
+                                <a 
+                                    href="{{ url_for('upload.download', filename=item.filename) }}" 
+                                    class="group inline-flex items-center justify-center px-6 py-3 text-lg font-bold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-sky-600 rounded-xl shadow-lg hover:shadow-blue-500/50 hover:from-blue-700 hover:via-cyan-700 hover:to-sky-700 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 active:scale-95 overflow-hidden relative"
+                                >
+                                    <!-- アニメーション背景 -->
+                                    <span class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -skew-x-12 group-hover:translate-x-full"></span>
+                                    
+                                    <svg class="w-5 h-5 mr-2 relative z-10 transition-transform group-hover:rotate-12 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
+                                    <span class="relative z-10">ダウンロード</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- 履歴がない場合 -->
+            <div class="text-center py-16">
+                <div class="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full mb-6">
+                    <svg class="w-16 h-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-4xl font-bold text-gray-600 mb-4">履歴がありません</h2>
+                <p class="text-xl text-gray-500 mb-8">まだ変換されたファイルがありません</p>
+                <a 
+                    href="{{ url_for('upload.index') }}" 
+                    class="inline-flex items-center justify-center px-12 py-5 text-2xl font-bold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-sky-600 rounded-2xl shadow-xl hover:shadow-blue-500/50 hover:from-blue-700 hover:via-cyan-700 hover:to-sky-700 transition-all duration-300 transform hover:scale-110 hover:-translate-y-1"
+                >
+                    <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    変換を開始する
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- 戻るリンク -->
+    <div class="text-center mt-8">
+        <a 
+            href="{{ url_for('upload.index') }}" 
+            class="text-blue-600 hover:text-blue-800 font-bold text-xl underline transition-colors duration-200 hover:no-underline inline-flex items-center group"
+        >
+            <svg class="w-6 h-6 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            変換画面に戻る
+        </a>
+    </div>
+</div>
+{% endblock %}
+
