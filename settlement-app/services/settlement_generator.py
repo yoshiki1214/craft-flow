@@ -7,6 +7,7 @@ Excelファイルを操作して、顧客ごとの精算書シートを作成し
 # openpyxl: Excelファイルを読み書きするためのライブラリ
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
+from openpyxl.styles import Border, Side  # 罫線設定用に追加
 
 # datetime: 日付を扱うためのモジュール
 from datetime import date
@@ -328,6 +329,54 @@ class SettlementGenerator:
         )
         ws["A35"] = bank_info  # 銀行口座情報
         ws["A36"] = f"口座名義: {customer_data.get('口座名義', '')}"  # 口座名義
+
+        # --- 罫線の設定(openpyxlの罫線削除問題対策) ---
+        # 罫線のスタイルを定義（細い実線）
+        thin_border = Side(style="thin")
+
+        ws["C8"].border = Border(bottom=thin_border)
+
+        ws["D8"].border = Border(bottom=thin_border)
+
+        ws["E8"].border = Border(bottom=thin_border)
+
+        ws["C9"].border = Border(left=thin_border, right=thin_border, bottom=thin_border)
+
+        ws["B10"].border = Border(right=thin_border)
+
+        ws["B11"].border = Border(right=thin_border)
+
+        ws["B12"].border = Border(right=thin_border)
+
+        ws["C13"].border = Border(top=thin_border)
+
+        ws["D13"].border = Border(top=thin_border)
+
+        ws["E13"].border = Border(top=thin_border)
+
+        ws["F10"].border = Border(left=thin_border)
+
+        ws["F11"].border = Border(left=thin_border)
+
+        ws["F12"].border = Border(left=thin_border)
+
+        ws["A27"].border = Border(left=thin_border, right=thin_border)
+
+        ws["C27"].border = Border(left=thin_border, right=thin_border)
+
+        ws["A31"].border = Border(top=thin_border, left=thin_border, right=thin_border)
+
+        ws["C31"].border = Border(top=thin_border, left=thin_border, right=thin_border, bottom=thin_border)
+
+        ws["A32"].border = Border(top=thin_border)
+
+        ws["B32"].border = Border(top=thin_border)
+
+        ws["C32"].border = Border(top=thin_border)
+
+        ws["D32"].border = Border(top=thin_border)
+
+        ws["E32"].border = Border(top=thin_border)
 
 
 def create_settlements_for_month(
