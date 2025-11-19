@@ -7,7 +7,7 @@ Excelファイルを操作して、顧客ごとの精算書シートを作成し
 # openpyxl: Excelファイルを読み書きするためのライブラリ
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
-from openpyxl.styles import Border, Side  # 罫線設定用に追加
+from openpyxl.styles import Border, Side, Alignment  # 罫線設定用に追加（Alignmentも追加）
 
 # datetime: 日付を扱うためのモジュール
 from datetime import date
@@ -227,7 +227,8 @@ class SettlementGenerator:
         # 数値として書き込み、Excelの通貨フォーマットを適用（例: ¥636,592）
         ws["C10"] = payment_amount  # お支払金額（右上に表示）
         ws["C10"].number_format = "¥#,##0"  # 通貨フォーマット（¥記号と3桁区切り）
-
+        ws["C10"].alignment = Alignment(vertical="center", horizontal="center")  # 垂直・水平方向の中央揃え
+        
         # 精算期間を書き込み
         ws["A15"] = (
             f"精算期間: {period_start.strftime('%Y年%m月%d日')} ～ {period_end.strftime('%Y年%m月%d日')}"
@@ -341,6 +342,8 @@ class SettlementGenerator:
         ws["E8"].border = Border(bottom=thin_border)
 
         ws["C9"].border = Border(left=thin_border, right=thin_border, bottom=thin_border)
+
+        ws["F9"].border = Border(left=thin_border, right=thin_border, bottom=thin_border)
 
         ws["B10"].border = Border(right=thin_border)
 
