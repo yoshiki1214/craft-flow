@@ -214,8 +214,7 @@ class SettlementGenerator:
         # --- ヘッダー情報の書き込み ---
         # ws["E4"]: E列4行目のセルに値を設定（Excelのセル参照と同じ）
         ws["E4"] = settlement_number  # 精算番号
-        # strftime(): 日付を指定した形式の文字列に変換
-        # '%Y年%m月%d日' → "2025年10月25日" のような形式
+        # strftime(): 日付を'%Y年%m月%d日'に変換
         ws["E5"] = issue_date.strftime("%Y年%m月%d日")  # 発行日
 
         # --- 顧客情報の書き込み ---
@@ -228,7 +227,7 @@ class SettlementGenerator:
         ws["C10"] = payment_amount  # お支払金額（右上に表示）
         ws["C10"].number_format = "¥#,##0"  # 通貨フォーマット（¥記号と3桁区切り）
         ws["C10"].alignment = Alignment(vertical="center", horizontal="center")  # 垂直・水平方向の中央揃え
-        
+
         # 精算期間を書き込み
         ws["A15"] = (
             f"精算期間: {period_start.strftime('%Y年%m月%d日')} ～ {period_end.strftime('%Y年%m月%d日')}"
