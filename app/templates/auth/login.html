@@ -45,6 +45,19 @@
                 {{ form.submit }}
             </div>
         </form>
+
+        <div class="mt-6 text-center space-y-4">
+            <div>
+                <a href="{{ url_for('auth.register') }}" class="text-base font-medium text-indigo-600 hover:text-indigo-800">
+                    アカウントを登録
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('auth.reset_password') }}" class="text-base font-medium text-indigo-600 hover:text-indigo-800">
+                    パスワードを忘れた時
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
