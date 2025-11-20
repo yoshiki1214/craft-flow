@@ -10,12 +10,14 @@ import logging
 from io import BytesIO
 from typing import Dict, List
 from flask import Blueprint, flash, redirect, render_template, request, url_for, send_file
+from flask_login import login_required
 from werkzeug.utils import secure_filename
 import pandas as pd
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from app import db
 from app.models.pos_sales import PosSales
 from app.models.daily_sales import DailySales
+from app.utils.decorators import shinko_center_required
 from app.utils.pdf_processor import (
     extract_metadata_from_pdf,
     extract_table_data_from_pdf,
@@ -23,6 +25,14 @@ from app.utils.pdf_processor import (
 )
 
 pos_bp = Blueprint("pos", __name__, url_prefix="/pos")
+
+
+@pos_bp.before_request
+@login_required
+@shinko_center_required
+def require_shinko_center():
+    """POS機能のすべてのルートで振興センターの権限を要求する"""
+    pass
 
 
 def allowed_file(filename: str) -> bool:

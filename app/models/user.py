@@ -6,15 +6,16 @@
 """
 
 from datetime import datetime
+from flask_login import UserMixin
 from app import db
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     """
     ユーザーデータテーブル
 
     アプリケーション利用者の基本情報を保存する。
-    将来的な認証機能（Flask-Login等）の基盤として使用される。
+    Flask-Loginによる認証機能の基盤として使用される。
 
     Attributes:
         id: 主キー（自動採番）
