@@ -15,10 +15,12 @@ from flask import Flask, request, redirect, render_template, send_from_directory
 import os  # osモジュール: ファイルパスの操作やディレクトリの作成など、OS関連の機能を提供
 from werkzeug.utils import secure_filename  # ファイル名を安全な形式に変換（悪意のあるファイル名を無害化）
 import pandas as pd  # pandas: データ分析ライブラリ。Excelファイルの読み書きやデータ操作に利用
-from openpyxl import Workbook  # openpyxl: Excelファイルを操作するためのライブラリ
-from datetime import date  # datetimeモジュールからdateクラスをインポート: 日付を扱うために使用
-import calendar  # calendarモジュール: カレンダー関連の機能を提供
-from services.settlement_generator import SettlementGenerator, create_settlements_for_month  # 自作の精算書生成モジュール
+from datetime import datetime  # datetimeモジュールからdatetimeクラスをインポート: 日付を扱うために使用
+from flask_sqlalchemy import SQLAlchemy  # Flask-SQLAlchemy: データベース操作
+from flask_migrate import Migrate  # Flask-Migrate: データベースマイグレーション
+from services.settlement_generator import (
+    create_settlements_for_month,
+)  # 自作の精算書生成モジュール
 
 # --- Flaskアプリケーションの初期設定 ---
 
@@ -31,6 +33,19 @@ app = Flask(__name__)
 # このキーはセッション情報を暗号化するために使われます
 # 本番環境では、推測されにくい安全な文字列を環境変数から読み込むのが一般的です
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+
+# データベース設定
+base_dir = os.path.dirname(os.path.abspath(__file__))
+instance_path = os.path.join(base_dir, "instance")
+os.makedirs(instance_path, exist_ok=True)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", f"sqlite:///{os.path.join(instance_path, 'settlement.db')}"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# データベース初期化
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # ファイルアップロード先のディレクトリパスを設定
 # os.path.abspath(__file__): このファイルの絶対パスを取得 (例: /path/to/your/project/app.py)
@@ -45,6 +60,7 @@ ALLOWED_EXTENSIONS = {"xlsx", "xlsm"}
 
 
 # --- 関数定義 ---
+
 
 def allowed_file(filename):
     """
@@ -112,7 +128,58 @@ def _extract_year_month_from_sales(sales_filename: str) -> tuple[int | None, int
         return None, None
 
 
+# モデルの定義（循環インポートを避けるため、ここで定義）
+class SettlementHistory(db.Model):
+    """
+    精算書発行履歴テーブル
+
+    精算書の一括生成・ダウンロード履歴を保存する。
+
+    Attributes:
+        id: 主キー（自動採番）
+        year: 精算対象年
+        month: 精算対象月
+        file_name: 生成されたファイル名
+        file_path: ファイルの保存パス
+        file_format: ファイル形式（excel/pdf）
+        created_at: 発行日時（自動設定）
+    """
+
+    __tablename__ = "settlement_history"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    year = db.Column(db.Integer, nullable=False, comment="精算対象年")
+    month = db.Column(db.Integer, nullable=False, comment="精算対象月")
+    file_name = db.Column(db.String(255), nullable=False, comment="ファイル名")
+    file_path = db.Column(db.String(500), nullable=False, comment="ファイル保存パス")
+    file_format = db.Column(db.String(10), nullable=False, default="excel", comment="ファイル形式")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, comment="発行日時")
+
+    # インデックスの定義
+    __table_args__ = (
+        db.Index("idx_settlement_history_year_month", "year", "month"),
+        db.Index("idx_settlement_history_created_at", "created_at"),
+    )
+
+    def __repr__(self) -> str:
+        """オブジェクトの文字列表現を返す"""
+        return f"<SettlementHistory {self.id}: {self.year}年{self.month}月 - {self.file_name}>"
+
+    def to_dict(self) -> dict:
+        """辞書形式に変換"""
+        return {
+            "id": self.id,
+            "year": self.year,
+            "month": self.month,
+            "file_name": self.file_name,
+            "file_path": self.file_path,
+            "file_format": self.file_format,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+
 # --- ルート（URL）定義 ---
+
 
 @app.route("/", methods=["GET"])
 def index():
@@ -122,6 +189,68 @@ def index():
     """
     # "templates"フォルダの中の"upload.html"を読み込んでユーザーに表示
     return render_template("upload.html")
+
+
+@app.route("/history", methods=["GET"])
+def history_page():
+    """
+    発行履歴一覧ページを表示
+    """
+    # 発行履歴を新しい順に取得
+    histories = SettlementHistory.query.order_by(SettlementHistory.created_at.desc()).all()
+
+    return render_template("history.html", histories=histories)
+
+
+@app.route("/download/<int:history_id>")
+def download_page(history_id):
+    """
+    精算書ダウンロードページを表示
+    """
+    history = SettlementHistory.query.get_or_404(history_id)
+
+    # ファイルの存在確認
+    if not os.path.exists(history.file_path):
+        flash(f"ファイルが見つかりません: {history.file_name}", "error")
+        return redirect("/")
+
+    return render_template("download.html", history=history)
+
+
+@app.route("/download/<int:history_id>/file")
+def download_file(history_id):
+    """
+    精算書ファイルをダウンロード
+    """
+    history = SettlementHistory.query.get_or_404(history_id)
+
+    # ファイルの存在確認
+    if not os.path.exists(history.file_path):
+        flash(f"ファイルが見つかりません: {history.file_name}", "error")
+        return redirect("/")
+
+    # ファイルをダウンロード
+    return send_from_directory(
+        os.path.dirname(history.file_path), os.path.basename(history.file_path), as_attachment=True
+    )
+
+
+@app.route("/history/<int:history_id>/download")
+def download_history(history_id):
+    """
+    履歴から過去の精算書をダウンロード
+    """
+    history = SettlementHistory.query.get_or_404(history_id)
+
+    # ファイルの存在確認
+    if not os.path.exists(history.file_path):
+        flash(f"ファイルが見つかりません: {history.file_name}", "error")
+        return redirect("/history")
+
+    # ファイルをダウンロード
+    return send_from_directory(
+        os.path.dirname(history.file_path), os.path.basename(history.file_path), as_attachment=True
+    )
 
 
 @app.route("/upload", methods=["POST"])
@@ -247,7 +376,20 @@ def upload_files():
             # 生成結果に応じてメッセージを表示
             if output_filename:
                 output_basename = os.path.basename(output_filename)  # パスからファイル名だけを取得
-                flash(f"精算書の生成が完了しました: {output_basename}", "success")
+
+                # 発行履歴をデータベースに保存
+                history = SettlementHistory(
+                    year=year,
+                    month=month,
+                    file_name=output_basename,
+                    file_path=output_filename,
+                    file_format="excel",
+                )
+                db.session.add(history)
+                db.session.commit()
+
+                # ダウンロードページにリダイレクト
+                return redirect(f"/download/{history.id}")
             else:
                 flash("精算書の生成に失敗しました。対象期間のデータが存在しない可能性があります。", "error")
 
@@ -370,7 +512,9 @@ def generate_settlements():
         base_dir = os.path.dirname(os.path.abspath(__file__))
         customer_file = os.path.join(base_dir, "uploads", "customers", customer_filename)
         sales_file = os.path.join(base_dir, "uploads", "sales", sales_filename)
-        template_file = os.path.join(base_dir, "委託販売精算書.xlsx") # 注意：テンプレート名がハードコードされている
+        template_file = os.path.join(
+            base_dir, "委託販売精算書.xlsx"
+        )  # 注意：テンプレート名がハードコードされている
 
         # ファイルの存在確認
         if not os.path.exists(customer_file):
@@ -431,6 +575,10 @@ if __name__ == "__main__":
     """
     開発用Webサーバーを起動します。
     """
+    # データベーステーブルの作成
+    with app.app_context():
+        db.create_all()
+
     # 起動前に、アップロード用のフォルダが存在するか確認し、なければ作成する
     # これにより、初回起動時にアップロードでエラーが出るのを防ぎます
     if not os.path.exists(app.config["UPLOAD_FOLDER"]):

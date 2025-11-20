@@ -10,7 +10,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.styles import Border, Side, Alignment  # 罫線設定用に追加（Alignmentも追加）
 
 # datetime: 日付を扱うためのモジュール
-from datetime import date
+from datetime import date, datetime
 
 # calendar: カレンダー関連の機能（例：月の最終日を取得）を提供
 import calendar
@@ -504,9 +504,11 @@ def create_settlements_for_month(
         os.makedirs(output_dir, exist_ok=True)
 
         # 出力ファイル名を生成
-        # f文字列: 変数を文字列に埋め込む（例: "精算書_202510_全顧客.xlsx"）
-        # {month:02d}: 月を2桁の数値で表示（例: 10 → "10", 5 → "05"）
-        output_filename = os.path.join(output_dir, f"精算書_{year}{month:02d}_全顧客.xlsx")
+        # 現在の日時を取得してファイル名に使用（例: "精算書_20251015_143025.xlsx"）
+        now = datetime.now()
+        date_str = now.strftime("%Y%m%d")  # 日付: YYYYMMDD
+        time_str = now.strftime("%H%M%S")  # 時間: HHMMSS
+        output_filename = os.path.join(output_dir, f"精算書_{date_str}_{time_str}.xlsx")
 
         # Excelファイルを保存
         main_wb.save(output_filename)

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}精算書ダウンロード - 精算書生成システム{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>精算書の生成が完了しました</h1>
+    
+    <div style="margin: 2rem 0;">
+        <div style="background-color: #d4edda; color: #155724; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+            <strong>✓ 生成完了</strong><br>
+            精算書が正常に生成されました。以下の情報を確認してダウンロードしてください。
+        </div>
+        
+        <div style="background-color: #f8f9fa; padding: 1.5rem; border-radius: 4px; margin-bottom: 1.5rem;">
+            <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">生成情報</h2>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 0.5rem; font-weight: 600; width: 150px;">精算対象:</td>
+                    <td style="padding: 0.5rem;">{{ history.year }}年{{ history.month }}月</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem; font-weight: 600;">ファイル名:</td>
+                    <td style="padding: 0.5rem;">{{ history.file_name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem; font-weight: 600;">ファイル形式:</td>
+                    <td style="padding: 0.5rem;">{{ history.file_format.upper() }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem; font-weight: 600;">発行日時:</td>
+                    <td style="padding: 0.5rem;">{{ history.created_at.strftime('%Y年%m月%d日 %H:%M:%S') }}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div style="margin-top: 2rem; text-align: center;">
+            <a href="{{ url_for('download_file', history_id=history.id) }}" class="btn" style="font-size: 1.2rem; padding: 1rem 2rem;">
+                📥 精算書をダウンロード
+            </a>
+        </div>
+    </div>
+    
+    <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #ddd;">
+        <h2 style="margin-bottom: 1rem; font-size: 1.1rem;">その他の操作</h2>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="{{ url_for('history_page') }}" class="btn btn-secondary">発行履歴を見る</a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">ファイルを再アップロード</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

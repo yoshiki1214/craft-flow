@@ -1,24 +1,10 @@
-<!doctype html>
-<html lang="ja">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <title>アップロード</title>
-</head>
+{% block title %}ファイルアップロード - 精算書生成システム{% endblock %}
 
-<body>
+{% block content %}
+<div class="card">
     <h1>ファイルをアップロードする</h1>
-
-    <!-- フラッシュメッセージの表示 -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category }}">
-        {{ message }}
-    </div>
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
 
     <!-- 統合フォーム -->
     <form method="post" action="{{ url_for('upload_files') }}" enctype="multipart/form-data" id="upload-form">
@@ -58,80 +44,82 @@
 
         <!-- 一括アップロードボタン -->
         <div style="margin-top: 20px;">
-            <input type="submit" value="アップロード" id="upload-submit-btn">
+            <input type="submit" value="アップロード" id="upload-submit-btn" class="btn">
         </div>
     </form>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // 顧客データ用のファイル選択
-            const customerFileInput = document.getElementById('customer-file-input');
-            const selectCustomerFileBtn = document.getElementById('select-customer-file-btn');
-            const customerFileNamesList = document.getElementById('customer-file-names-list');
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // 顧客データ用のファイル選択
+        const customerFileInput = document.getElementById('customer-file-input');
+        const selectCustomerFileBtn = document.getElementById('select-customer-file-btn');
+        const customerFileNamesList = document.getElementById('customer-file-names-list');
 
-            selectCustomerFileBtn.addEventListener('click', function () {
-                customerFileInput.click();
-            });
-
-            customerFileInput.addEventListener('change', function () {
-                displayFileName(this, customerFileNamesList);
-            });
-
-            // 委託販売売上データ用のファイル選択
-            const salesFileInput = document.getElementById('sales-file-input');
-            const selectSalesFileBtn = document.getElementById('select-sales-file-btn');
-            const salesFileNamesList = document.getElementById('sales-file-names-list');
-
-            selectSalesFileBtn.addEventListener('click', function () {
-                salesFileInput.click();
-            });
-
-            salesFileInput.addEventListener('change', function () {
-                displayFileName(this, salesFileNamesList);
-            });
-
-            // ファイル名を表示する関数（1ファイルのみ）
-            function displayFileName(fileInput, fileNamesList) {
-                fileNamesList.innerHTML = '';
-
-                if (fileInput.files.length > 0) {
-                    const fileItem = document.createElement('div');
-                    fileItem.className = 'file-item';
-
-                    const fileNameSpan = document.createElement('span');
-                    fileNameSpan.textContent = fileInput.files[0].name;
-                    fileNameSpan.className = 'file-name';
-
-                    const removeFileBtn = document.createElement('button');
-                    removeFileBtn.type = 'button';
-                    removeFileBtn.className = 'remove-file-item-btn';
-                    removeFileBtn.textContent = '削除';
-                    removeFileBtn.title = 'このファイルを削除';
-                    removeFileBtn.addEventListener('click', function () {
-                        fileInput.value = '';
-                        fileNamesList.innerHTML = '';
-                    });
-
-                    fileItem.appendChild(fileNameSpan);
-                    fileItem.appendChild(removeFileBtn);
-                    fileNamesList.appendChild(fileItem);
-                }
-            }
-
-            // フォーム送信時のバリデーション
-            const uploadForm = document.getElementById('upload-form');
-            uploadForm.addEventListener('submit', function (e) {
-                const customerFile = customerFileInput.files.length > 0;
-                const salesFile = salesFileInput.files.length > 0;
-
-                if (!customerFile && !salesFile) {
-                    e.preventDefault();
-                    alert('少なくとも1つのファイルを選択してください。');
-                    return false;
-                }
-            });
+        selectCustomerFileBtn.addEventListener('click', function () {
+            customerFileInput.click();
         });
-    </script>
-</body>
 
-</html>
+        customerFileInput.addEventListener('change', function () {
+            displayFileName(this, customerFileNamesList);
+        });
+
+        // 委託販売売上データ用のファイル選択
+        const salesFileInput = document.getElementById('sales-file-input');
+        const selectSalesFileBtn = document.getElementById('select-sales-file-btn');
+        const salesFileNamesList = document.getElementById('sales-file-names-list');
+
+        selectSalesFileBtn.addEventListener('click', function () {
+            salesFileInput.click();
+        });
+
+        salesFileInput.addEventListener('change', function () {
+            displayFileName(this, salesFileNamesList);
+        });
+
+        // ファイル名を表示する関数（1ファイルのみ）
+        function displayFileName(fileInput, fileNamesList) {
+            fileNamesList.innerHTML = '';
+
+            if (fileInput.files.length > 0) {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.style.cssText = 'display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px;';
+
+                const fileNameSpan = document.createElement('span');
+                fileNameSpan.textContent = fileInput.files[0].name;
+                fileNameSpan.className = 'file-name';
+                fileNameSpan.style.cssText = 'flex: 1;';
+
+                const removeFileBtn = document.createElement('button');
+                removeFileBtn.type = 'button';
+                removeFileBtn.className = 'remove-file-item-btn';
+                removeFileBtn.textContent = '削除';
+                removeFileBtn.style.cssText = 'padding: 0.25rem 0.75rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;';
+                removeFileBtn.title = 'このファイルを削除';
+                removeFileBtn.addEventListener('click', function () {
+                    fileInput.value = '';
+                    fileNamesList.innerHTML = '';
+                });
+
+                fileItem.appendChild(fileNameSpan);
+                fileItem.appendChild(removeFileBtn);
+                fileNamesList.appendChild(fileItem);
+            }
+        }
+
+        // フォーム送信時のバリデーション
+        const uploadForm = document.getElementById('upload-form');
+        uploadForm.addEventListener('submit', function (e) {
+            const customerFile = customerFileInput.files.length > 0;
+            const salesFile = salesFileInput.files.length > 0;
+
+            if (!customerFile && !salesFile) {
+                e.preventDefault();
+                alert('少なくとも1つのファイルを選択してください。');
+                return false;
+            }
+        });
+    });
+</script>
+{% endblock %}
