@@ -15,7 +15,7 @@
             </a>
         </div>
         <div class="mt-2">
-            <a href="{{ url_for('pos.dashboard') }}" class="text-indigo-600 hover:text-indigo-800 text-sm">
+            <a href="{{ url_for('pos.dashboard') }}" class="text-indigo-600 hover:text-indigo-800 text-base font-medium">
                 ← ダッシュボードに戻る
             </a>
         </div>
@@ -118,5 +118,32 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- 上に戻るボタン（フロート） -->
+    <button id="scrollToTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="fixed bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full p-3 shadow-lg opacity-0 transition-opacity duration-300 z-50" aria-label="上に戻る">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+    </button>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 上に戻るボタンの表示/非表示制御
+    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+
+    if (scrollToTopBtn) {
+        window.addEventListener('scroll', function () {
+            const scrollY = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+            if (scrollY > 300) {
+                scrollToTopBtn.classList.remove('opacity-0');
+                scrollToTopBtn.classList.add('opacity-100');
+            } else {
+                scrollToTopBtn.classList.remove('opacity-100');
+                scrollToTopBtn.classList.add('opacity-0');
+            }
+        });
+    }
+</script>
 {% endblock %}

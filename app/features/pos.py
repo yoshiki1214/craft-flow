@@ -483,6 +483,45 @@ def results(sale_date: str):
     )
 
 
+@pos_bp.route("/delete/<sale_date>/<pos_number>", methods=["POST"])
+def delete(sale_date: str, pos_number: str):
+    """
+    指定された営業日とPOSレジ番号のデータを削除する
+
+    Args:
+        sale_date: 売上日 (YYYY-MM-DD)
+        pos_number: POSレジ番号
+
+    Returns:
+        ダッシュボードへのリダイレクト
+    """
+    try:
+        # 該当するデータを取得
+        records = PosSales.query.filter_by(sale_date=sale_date, pos_number=pos_number).all()
+
+        if not records:
+            flash("削除対象のデータが見つかりませんでした。", "error")
+            return redirect(url_for("pos.dashboard"))
+
+        # レコード数を取得
+        record_count = len(records)
+
+        # データを削除
+        for record in records:
+            db.session.delete(record)
+
+        # コミット
+        db.session.commit()
+
+        flash(f"{sale_date} {pos_number} のデータ（{record_count}件）を削除しました。", "success")
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"データ削除エラー: {e}")
+        flash(f"データの削除中にエラーが発生しました: {str(e)}", "error")
+
+    return redirect(url_for("pos.dashboard"))
+
+
 @pos_bp.route("/details/<sale_date>/<pos_number>")
 def details(sale_date: str, pos_number: str):
     """
