@@ -8,12 +8,14 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect
 import os
 
 # 拡張機能のインスタンスを作成（アプリケーションコンテキスト外で使用可能にするため）
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
+csrf = CSRFProtect()
 
 
 def create_app(config_name: str = "default") -> Flask:
@@ -48,6 +50,7 @@ def create_app(config_name: str = "default") -> Flask:
     login_manager.login_view = "auth.login"
     login_manager.login_message = "ログインが必要です。"
     login_manager.login_message_category = "info"
+    csrf.init_app(app)
 
     # ユーザーローダーの設定
     @login_manager.user_loader

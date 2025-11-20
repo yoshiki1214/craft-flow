@@ -23,6 +23,7 @@ class User(UserMixin, db.Model):
         email: メールアドレス（一意制約）
         department: 所属
         hashed_password: ハッシュ化されたパスワード
+        can_manage_users: ユーザー管理権限（デフォルト: False）
         created_at: 登録日時（自動設定）
     """
 
@@ -33,6 +34,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(255), nullable=False, unique=True, comment="メールアドレス")
     department = db.Column(db.String(50), nullable=False, comment="所属")
     hashed_password = db.Column(db.String(255), nullable=False, comment="ハッシュ化されたパスワード")
+    can_manage_users = db.Column(db.Boolean, default=False, nullable=False, comment="ユーザー管理権限")
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, comment="登録日時")
 
     def __repr__(self) -> str:

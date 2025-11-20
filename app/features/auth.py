@@ -54,12 +54,13 @@ def register():
 
     if form.validate_on_submit():
         try:
-            # ユーザーを作成
+            # ユーザーを作成（新規登録時は管理権限なし）
             user = User(
                 username=form.username.data,
                 email=form.email.data,
                 department=form.department.data,
                 hashed_password=generate_password_hash(form.password.data),
+                can_manage_users=False,
             )
 
             db.session.add(user)
