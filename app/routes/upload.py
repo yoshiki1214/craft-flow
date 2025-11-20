@@ -105,8 +105,16 @@ def get_conversion_history() -> list:
 
 @upload_bp.route('/')
 def index():
-    """全銀フォーマット変換画面を表示"""
-    return render_template('upload/index.html')
+    """全銀フォーマット変換画面を表示（最新保存ファイルのダウンロードリンク含む）"""
+    from flask import session
+    
+    # セッションから最新保存ファイル名を取得
+    last_filename = session.pop('last_output_filename', None)
+    last_path = session.pop('last_output_path', None)
+    
+    return render_template('upload/index.html', 
+                         last_filename=last_filename,
+                         last_path=last_path)
 
 
 @upload_bp.route('/history')
@@ -309,8 +317,8 @@ def convert():
                 except Exception as e:
                     current_app.logger.warning(f'一時ファイルの削除に失敗: {uploaded_file}, {str(e)}')
             
-            # ダウンロードリンクを表示する画面にリダイレクト
-            return redirect(url_for('upload.success', filename=output_filename))
+            # トップページにリダイレクト（成功メッセージとダウンロードリンクを表示）
+            return redirect(url_for('upload.index'))
             
         except ZenginFormatError as e:
             error_msg = f'ファイル保存エラー: {str(e)}'
