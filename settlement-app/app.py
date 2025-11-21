@@ -78,7 +78,7 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def _convert_excel_to_pdf(excel_path: str) -> str | None:
+def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
     """
     ExcelファイルをPDFに変換する内部関数（openpyxl + reportlab使用）
     Excelのレイアウト、フォント、色、罫線などを可能な限り再現
@@ -87,7 +87,8 @@ def _convert_excel_to_pdf(excel_path: str) -> str | None:
         excel_path: Excelファイルのパス
 
     Returns:
-        str | None: 生成されたPDFファイルのパス。失敗した場合はNone
+        tuple[str | None, str | None]: (生成されたPDFファイルのパス, エラーメッセージ)
+        成功した場合は (pdf_path, None)、失敗した場合は (None, error_message)
     """
     try:
         from openpyxl import load_workbook
@@ -105,7 +106,11 @@ def _convert_excel_to_pdf(excel_path: str) -> str | None:
             KeepTogether,
         )
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
+        from reportlab.lib.enums import TA_CENTER  # ParagraphStyle用（TableStyleでは使用しない）
+
+        # Excelファイルが存在するか確認
+        if not os.path.exists(excel_path):
+            return None, f"Excelファイルが見つかりません: {excel_path}"
 
         # PDFファイルのパスを生成（拡張子を.pdfに変更）
         pdf_path = os.path.splitext(excel_path)[0] + ".pdf"
@@ -267,15 +272,17 @@ def _convert_excel_to_pdf(excel_path: str) -> str | None:
                                 pass
 
                         # 配置
+                        # TableStyleでは文字列を使用する必要がある（TA_LEFTなどの整数定数は使用不可）
                         alignment = cell.alignment
-                        align = TA_LEFT
+                        align = "LEFT"  # デフォルトは左揃え
                         if alignment:
                             if alignment.horizontal == "center":
-                                align = TA_CENTER
+                                align = "CENTER"
                             elif alignment.horizontal == "right":
-                                align = TA_RIGHT
+                                align = "RIGHT"
                             elif alignment.horizontal == "justify":
-                                align = TA_JUSTIFY
+                                # TableStyleではjustifyはサポートされていないため、LEFTにフォールバック
+                                align = "LEFT"
 
                         # スタイルを適用
                         cell_range = (col_idx, row_idx)
@@ -302,20 +309,21 @@ def _convert_excel_to_pdf(excel_path: str) -> str | None:
         doc.build(story)
 
         if os.path.exists(pdf_path):
-            return pdf_path
+            return pdf_path, None
         else:
-            return None
+            return None, "PDFファイルの生成に失敗しました"
 
     except ImportError as e:
-        print(f"必要なライブラリがインストールされていません: {str(e)}")
-        print("pip install reportlab Pillow を実行してください")
-        return None
+        error_msg = f"必要なライブラリがインストールされていません: {str(e)}。pip install reportlab Pillow を実行してください"
+        print(error_msg)
+        return None, error_msg
     except Exception as e:
-        print(f"PDF変換中にエラーが発生しました: {str(e)}")
+        error_msg = f"PDF変換中にエラーが発生しました: {str(e)}"
+        print(error_msg)
         import traceback
 
         traceback.print_exc()
-        return None
+        return None, error_msg
 
 
 def _extract_year_month_from_sales(sales_filename: str) -> tuple[int | None, int | None]:
@@ -478,13 +486,20 @@ def download_file(history_id):
     elif file_format == "pdf":
         # PDFに変換してダウンロード
         try:
-            pdf_path = _convert_excel_to_pdf(history.file_path)
+            pdf_path, error_message = _convert_excel_to_pdf(history.file_path)
             if pdf_path and os.path.exists(pdf_path):
                 return send_from_directory(
                     os.path.dirname(pdf_path), os.path.basename(pdf_path), as_attachment=True
                 )
             else:
-                flash("PDF変換に失敗しました。LibreOfficeがインストールされている必要があります。", "error")
+                # エラーメッセージがあればそれを表示、なければデフォルトメッセージ
+                if error_message:
+                    flash(f"PDF変換に失敗しました: {error_message}", "error")
+                else:
+                    flash(
+                        "PDF変換に失敗しました。reportlabライブラリが正しくインストールされているか確認してください。",
+                        "error",
+                    )
                 return redirect(f"/download/{history_id}")
         except Exception as e:
             flash(f"PDF変換中にエラーが発生しました: {str(e)}", "error")
@@ -515,13 +530,20 @@ def download_history(history_id):
     elif file_format == "pdf":
         # PDFに変換してダウンロード
         try:
-            pdf_path = _convert_excel_to_pdf(history.file_path)
+            pdf_path, error_message = _convert_excel_to_pdf(history.file_path)
             if pdf_path and os.path.exists(pdf_path):
                 return send_from_directory(
                     os.path.dirname(pdf_path), os.path.basename(pdf_path), as_attachment=True
                 )
             else:
-                flash("PDF変換に失敗しました。LibreOfficeがインストールされている必要があります。", "error")
+                # エラーメッセージがあればそれを表示、なければデフォルトメッセージ
+                if error_message:
+                    flash(f"PDF変換に失敗しました: {error_message}", "error")
+                else:
+                    flash(
+                        "PDF変換に失敗しました。reportlabライブラリが正しくインストールされているか確認してください。",
+                        "error",
+                    )
                 return redirect("/history")
         except Exception as e:
             flash(f"PDF変換中にエラーが発生しました: {str(e)}", "error")
