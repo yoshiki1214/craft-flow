@@ -100,13 +100,46 @@ def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
             Table,
             TableStyle,
             SimpleDocTemplate,
-            Paragraph,
-            Spacer,
             PageBreak,
-            KeepTogether,
         )
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.enums import TA_CENTER  # ParagraphStyle用（TableStyleでは使用しない）
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+
+        # 日本語フォントを登録（macOSの場合）
+        japanese_font_name = None
+        japanese_font_bold_name = None
+        try:
+            # macOSのシステムフォントを試す（優先順位順）
+            font_paths = [
+                "/System/Library/Fonts/AppleSDGothicNeo.ttc",  # macOS標準の日本語フォント
+                "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
+                "/System/Library/Fonts/Supplemental/NotoSansGothic-Regular.ttf",
+                "/System/Library/Fonts/Supplemental/ヒラギノ角ゴシック W3.ttc",
+                "/System/Library/Fonts/Supplemental/ヒラギノ角ゴシック W6.ttc",
+                "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+                "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc",
+                "/Library/Fonts/NotoSansCJK-Regular.ttc",
+            ]
+            for font_path in font_paths:
+                if os.path.exists(font_path):
+                    try:
+                        # TTCファイルの場合は、フォントインデックスを指定する必要がある場合がある
+                        pdfmetrics.registerFont(TTFont("JapaneseFont", font_path))
+                        pdfmetrics.registerFont(TTFont("JapaneseFont-Bold", font_path))
+                        japanese_font_name = "JapaneseFont"
+                        japanese_font_bold_name = "JapaneseFont-Bold"
+                        print(f"日本語フォントを登録しました: {font_path}")
+                        break
+                    except Exception as e:
+                        print(f"フォント登録エラー ({font_path}): {str(e)}")
+                        continue
+            if not japanese_font_name:
+                # フォントが見つからない場合は、デフォルトフォントを使用
+                # reportlabのデフォルトフォントは日本語をサポートしないため、
+                # 警告を出すが処理は続行
+                print("警告: 日本語フォントが見つかりません。日本語が正しく表示されない可能性があります。")
+        except Exception as e:
+            print(f"フォント登録エラー: {str(e)}")
 
         # Excelファイルが存在するか確認
         if not os.path.exists(excel_path):
@@ -119,58 +152,34 @@ def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
         wb = load_workbook(excel_path, data_only=True)
 
         # PDFドキュメントを作成（A4横または縦）
+        # 左マージンを増やしてテーブルが左に寄りすぎないようにする
         doc = SimpleDocTemplate(
             pdf_path,
             pagesize=A4,
             rightMargin=15 * mm,
-            leftMargin=15 * mm,
+            leftMargin=25 * mm,  # 左マージンを15mmから25mmに増やす
             topMargin=15 * mm,
             bottomMargin=15 * mm,
         )
 
         story = []
-        styles = getSampleStyleSheet()
 
         # 各シートを処理
         for sheet_idx, sheet_name in enumerate(wb.sheetnames):
             ws = wb[sheet_name]
 
-            # シート名をタイトルとして追加
-            if sheet_idx > 0:
-                story.append(PageBreak())
-
-            title_style = ParagraphStyle(
-                "CustomTitle",
-                parent=styles["Heading1"],
-                fontSize=16,
-                textColor=colors.HexColor("#000000"),
-                spaceAfter=12,
-                alignment=TA_CENTER,
-            )
-            title = Paragraph(f"<b>{sheet_name}</b>", title_style)
-            story.append(title)
-            story.append(Spacer(1, 12))
-
             # シートの使用範囲を取得
             if ws.max_row == 0 or ws.max_column == 0:
                 continue
 
-            # 列幅を取得（Excelの列幅をmmに変換）
-            col_widths = []
-            for col_idx in range(1, min(ws.max_column + 1, 15)):  # 最大15列まで
-                col_letter = get_column_letter(col_idx)
-                # Excelの列幅を取得（デフォルトは約8.43文字分）
-                column_dimension = ws.column_dimensions.get(col_letter)
-                if column_dimension and column_dimension.width:
-                    # Excelの列幅（文字数）をmmに変換（1文字 ≈ 7mm）
-                    width_mm = column_dimension.width * 7
-                else:
-                    width_mm = 8.43 * 7  # デフォルト幅
-                col_widths.append(width_mm)
+            # マージされたセルの情報を取得
+            merged_cells = list(ws.merged_cells.ranges)
 
             # データを読み込む（セルの書式、フォント、色などを保持）
             data = []
             row_heights = []
+            max_cols = 0  # 実際に使用されている最大列数を追跡
+            excel_row_to_data_row = {}  # Excelの行番号とデータの行インデックスの対応
 
             for row_idx in range(1, min(ws.max_row + 1, 100)):  # 最大100行まで
                 row_data = []
@@ -219,35 +228,120 @@ def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
                 if any(str(v).strip() for v in row_data):
                     data.append(row_data)
                     row_heights.append(row_height)
+                    max_cols = max(max_cols, len(row_data))
+                    # Excelの行番号とデータの行インデックスの対応を記録
+                    excel_row_to_data_row[row_idx] = len(data) - 1
 
             if data:
+                # 列幅を取得（実際に使用されている列数に基づく）
+                col_widths = []
+                for col_idx in range(1, max_cols + 1):
+                    col_letter = get_column_letter(col_idx)
+                    # Excelの列幅を取得（デフォルトは約8.43文字分）
+                    column_dimension = ws.column_dimensions.get(col_letter)
+                    if column_dimension and column_dimension.width:
+                        # Excelの列幅（文字数）をmmに変換
+                        # Excelの列幅は標準フォントサイズ11ptでの文字数
+                        # 1文字 ≈ 7.5mm（11ptフォントの場合）
+                        width_mm = column_dimension.width * 7.5
+                    else:
+                        width_mm = 8.43 * 7.5  # デフォルト幅（約63mm）
+                    col_widths.append(width_mm)
+
                 # 列幅を調整（ページ幅に収まるように）
-                page_width = A4[0] - 30 * mm
-                total_width = sum(col_widths) if col_widths else len(data[0]) * 50 * mm
-                if total_width > page_width:
+                page_width = A4[0] - 30 * mm  # 左右マージンを考慮
+                total_width = sum(col_widths) if col_widths else max_cols * 50 * mm
+                if total_width > page_width and total_width > 0:
                     scale_factor = page_width / total_width
                     col_widths = [w * scale_factor for w in col_widths]
 
-                # テーブルを作成
-                table = Table(data, colWidths=col_widths[: len(data[0])] if col_widths else None)
+                # テーブルを作成（列幅の数とデータの列数を一致させる）
+                # テーブルを作成（列幅の数とデータの列数を一致させる）
+                if col_widths and len(col_widths) == max_cols:
+                    table = Table(data, colWidths=col_widths)
+                else:
+                    table = Table(data)
 
                 # テーブルスタイルを構築（Excelの書式を再現）
                 table_style = []
 
+                # マージされたセルを処理
+                # まず、マージ範囲内の左上以外のセルの値を空にする
+                for merged_range in merged_cells:
+                    min_col, min_row, max_col, max_row = merged_range.bounds
+                    # Excelの行番号からデータの行インデックスに変換
+                    data_row_start = excel_row_to_data_row.get(min_row)
+                    data_row_end = excel_row_to_data_row.get(max_row)
+
+                    if data_row_start is not None and data_row_end is not None:
+                        # マージ範囲内のセルを処理
+                        for excel_row in range(min_row, max_row + 1):
+                            data_row = excel_row_to_data_row.get(excel_row)
+                            if data_row is not None and data_row < len(data):
+                                for excel_col in range(min_col, max_col + 1):
+                                    data_col = excel_col - 1  # Excelは1ベース、データは0ベース
+                                    # 左上のセルでない場合は空にする
+                                    if not (excel_row == min_row and excel_col == min_col):
+                                        if data_col < len(data[data_row]):
+                                            data[data_row][data_col] = ""
+
+                # マージされたセルをSPANコマンドで結合
+                for merged_range in merged_cells:
+                    min_col, min_row, max_col, max_row = merged_range.bounds
+                    # Excelの行番号からデータの行インデックスに変換
+                    data_row_start = excel_row_to_data_row.get(min_row)
+                    data_row_end = excel_row_to_data_row.get(max_row)
+
+                    if data_row_start is not None and data_row_end is not None:
+                        # 列インデックスは0ベース（Excelは1ベース）
+                        data_col_start = min_col - 1
+                        data_col_end = max_col - 1
+
+                        # データの範囲内かチェック
+                        if (
+                            0 <= data_row_start < len(data)
+                            and 0 <= data_row_end < len(data)
+                            and 0 <= data_col_start < max_cols
+                            and 0 <= data_col_end < max_cols
+                        ):
+                            # SPANコマンドでセルを結合
+                            table_style.append(
+                                ("SPAN", (data_col_start, data_row_start), (data_col_end, data_row_end))
+                            )
+
                 # 各セルのスタイルを適用
                 for row_idx, row_data in enumerate(data):
-                    for col_idx in range(len(row_data)):
-                        cell = ws.cell(row=row_idx + 1, column=col_idx + 1)
+                    # データの行インデックスからExcelの行番号を逆引き
+                    excel_row = None
+                    for excel_row_num, data_row_idx in excel_row_to_data_row.items():
+                        if data_row_idx == row_idx:
+                            excel_row = excel_row_num
+                            break
 
-                        # フォントスタイル
+                    if excel_row is None:
+                        excel_row = row_idx + 1  # フォールバック
+
+                    for col_idx in range(len(row_data)):
+                        cell = ws.cell(row=excel_row, column=col_idx + 1)
+
+                        # フォントスタイル（日本語フォントを使用）
                         font = cell.font
-                        font_name = "Helvetica"
+                        # 日本語フォントが登録されている場合はそれを使用、そうでなければHelvetica
+                        if japanese_font_name:
+                            font_name = japanese_font_name
+                        else:
+                            font_name = "Helvetica"
+
                         font_size = 9
                         font_color = colors.black
 
                         if font:
                             if font.bold:
-                                font_name = "Helvetica-Bold"
+                                # 太字の場合はBoldフォントを使用
+                                if japanese_font_bold_name:
+                                    font_name = japanese_font_bold_name
+                                else:
+                                    font_name = "Helvetica-Bold"
                             if font.size:
                                 font_size = int(font.size)
                             if font.color and font.color.rgb:
@@ -259,17 +353,24 @@ def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
                                 except Exception:
                                     pass
 
-                        # 背景色
+                        # 背景色（Excelで明示的に設定された場合のみ）
                         fill = cell.fill
                         bg_color = None
-                        if fill and fill.start_color and fill.start_color.rgb:
-                            try:
-                                rgb = fill.start_color.rgb
-                                if isinstance(rgb, str) and rgb.startswith("FF"):
-                                    rgb = rgb[2:]
-                                bg_color = colors.HexColor("#" + rgb)
-                            except Exception:
-                                pass
+                        # fill_typeが'solid'または'patternFill'の場合のみ背景色を設定
+                        if fill and fill.fill_type:
+                            fill_type = str(fill.fill_type).lower()
+                            if fill_type in ["solid", "patternfill"]:
+                                if fill.start_color and fill.start_color.rgb:
+                                    try:
+                                        rgb = fill.start_color.rgb
+                                        if isinstance(rgb, str) and rgb.startswith("FF"):
+                                            rgb = rgb[2:]
+                                        # 白やデフォルト色は背景色として設定しない
+                                        rgb_upper = rgb.upper()
+                                        if rgb_upper not in ["FFFFFF", "000000", "", "FFFFFFFF", "00000000"]:
+                                            bg_color = colors.HexColor("#" + rgb)
+                                    except Exception:
+                                        pass
 
                         # 配置
                         # TableStyleでは文字列を使用する必要がある（TA_LEFTなどの整数定数は使用不可）
@@ -293,17 +394,88 @@ def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
                             table_style.append(("BACKGROUND", cell_range, cell_range, bg_color))
                         table_style.append(("ALIGN", cell_range, cell_range, align))
 
-                # 罫線を追加
-                table_style.append(("GRID", (0, 0), (-1, -1), 0.5, colors.grey))
+                        # Excelの罫線情報を読み取って適用
+                        border = cell.border
+                        if border:
+                            # 罫線の太さを決定（Excelのスタイルに応じて）
+                            def get_border_width(border_side):
+                                """罫線の太さを取得"""
+                                if not border_side or not border_side.style:
+                                    return 0
+                                style = border_side.style
+                                if style == "thin":
+                                    return 0.5
+                                elif style == "medium":
+                                    return 1.0
+                                elif style == "thick":
+                                    return 2.0
+                                elif style == "double":
+                                    return 1.5
+                                elif style == "hair":
+                                    return 0.25
+                                elif style == "dotted" or style == "dashed":
+                                    return 0.5
+                                elif style == "dashDot" or style == "dashDotDot":
+                                    return 0.5
+                                elif style == "slantDashDot":
+                                    return 0.5
+                                elif style == "none":
+                                    return 0
+                                else:
+                                    return 0.5  # デフォルト
 
-                # 行の高さを設定
-                for row_idx, height in enumerate(row_heights):
-                    if height:
-                        table_style.append(("ROWBACKGROUNDS", (0, row_idx), (-1, row_idx), [colors.white]))
+                            # 罫線の色を取得
+                            def get_border_color(border_side):
+                                """罫線の色を取得"""
+                                if not border_side or not border_side.color:
+                                    return colors.black
+                                try:
+                                    if border_side.color.rgb:
+                                        rgb = border_side.color.rgb
+                                        if isinstance(rgb, str) and rgb.startswith("FF"):
+                                            rgb = rgb[2:]
+                                        return colors.HexColor("#" + rgb)
+                                except Exception:
+                                    pass
+                                return colors.black
+
+                            # 上罫線
+                            if border.top and border.top.style and border.top.style != "none":
+                                width = get_border_width(border.top)
+                                color = get_border_color(border.top)
+                                table_style.append(("LINEABOVE", cell_range, cell_range, width, color))
+
+                            # 下罫線
+                            if border.bottom and border.bottom.style and border.bottom.style != "none":
+                                width = get_border_width(border.bottom)
+                                color = get_border_color(border.bottom)
+                                table_style.append(("LINEBELOW", cell_range, cell_range, width, color))
+
+                            # 左罫線
+                            if border.left and border.left.style and border.left.style != "none":
+                                width = get_border_width(border.left)
+                                color = get_border_color(border.left)
+                                table_style.append(("LINEBEFORE", cell_range, cell_range, width, color))
+
+                            # 右罫線
+                            if border.right and border.right.style and border.right.style != "none":
+                                width = get_border_width(border.right)
+                                color = get_border_color(border.right)
+                                table_style.append(("LINEAFTER", cell_range, cell_range, width, color))
+
+                # グリッド線は削除（Excelで設定された罫線のみを表示）
+                # table_style.append(("GRID", (0, 0), (-1, -1), 0.5, colors.grey))  # 削除
+
+                # 行の高さを設定（デフォルト背景色は設定しない）
+                # 白背景を強制しない（Excelの背景色設定を尊重）
+                # table_style.append(("ROWBACKGROUNDS", ...))  # 削除
 
                 table.setStyle(TableStyle(table_style))
-                story.append(KeepTogether(table))
-                story.append(Spacer(1, 20))
+                story.append(table)
+
+            # 最後のシート以外は改ページを追加
+            if sheet_name != wb.sheetnames[-1]:
+                story.append(PageBreak())
 
         # PDFを生成
         doc.build(story)
