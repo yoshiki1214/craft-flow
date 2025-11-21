@@ -18,7 +18,7 @@
                 </div>
             </div>
 
-            <button type="button" id="select-customer-file-btn">ファイルを選択</button>
+            <button type="button" id="select-customer-file-btn" class="btn">ファイルを選択</button>
 
             <p class="help-text">
                 ※ Excelファイルを1つ選択してください（.xlsx, .xlsm形式のみ）
@@ -35,7 +35,7 @@
                 </div>
             </div>
 
-            <button type="button" id="select-sales-file-btn">ファイルを選択</button>
+            <button type="button" id="select-sales-file-btn" class="btn">ファイルを選択</button>
 
             <p class="help-text">
                 ※ Excelファイルを1つ選択してください（.xlsx, .xlsm形式のみ）
@@ -43,7 +43,7 @@
         </section>
 
         <!-- 一括アップロードボタン -->
-        <div style="margin-top: 20px;">
+        <div class="upload-submit-section">
             <input type="submit" value="アップロード" id="upload-submit-btn" class="btn">
         </div>
     </form>
@@ -84,18 +84,15 @@
             if (fileInput.files.length > 0) {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
-                fileItem.style.cssText = 'display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px;';
 
                 const fileNameSpan = document.createElement('span');
                 fileNameSpan.textContent = fileInput.files[0].name;
                 fileNameSpan.className = 'file-name';
-                fileNameSpan.style.cssText = 'flex: 1;';
 
                 const removeFileBtn = document.createElement('button');
                 removeFileBtn.type = 'button';
                 removeFileBtn.className = 'remove-file-item-btn';
                 removeFileBtn.textContent = '削除';
-                removeFileBtn.style.cssText = 'padding: 0.25rem 0.75rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;';
                 removeFileBtn.title = 'このファイルを削除';
                 removeFileBtn.addEventListener('click', function () {
                     fileInput.value = '';

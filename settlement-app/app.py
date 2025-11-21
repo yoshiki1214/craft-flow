@@ -78,6 +78,246 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def _convert_excel_to_pdf(excel_path: str) -> str | None:
+    """
+    ExcelファイルをPDFに変換する内部関数（openpyxl + reportlab使用）
+    Excelのレイアウト、フォント、色、罫線などを可能な限り再現
+
+    Args:
+        excel_path: Excelファイルのパス
+
+    Returns:
+        str | None: 生成されたPDFファイルのパス。失敗した場合はNone
+    """
+    try:
+        from openpyxl import load_workbook
+        from openpyxl.utils import get_column_letter
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import mm
+        from reportlab.lib import colors
+        from reportlab.platypus import (
+            Table,
+            TableStyle,
+            SimpleDocTemplate,
+            Paragraph,
+            Spacer,
+            PageBreak,
+            KeepTogether,
+        )
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
+
+        # PDFファイルのパスを生成（拡張子を.pdfに変更）
+        pdf_path = os.path.splitext(excel_path)[0] + ".pdf"
+
+        # Excelファイルを読み込む（data_only=Trueで数式の計算結果を取得）
+        wb = load_workbook(excel_path, data_only=True)
+
+        # PDFドキュメントを作成（A4横または縦）
+        doc = SimpleDocTemplate(
+            pdf_path,
+            pagesize=A4,
+            rightMargin=15 * mm,
+            leftMargin=15 * mm,
+            topMargin=15 * mm,
+            bottomMargin=15 * mm,
+        )
+
+        story = []
+        styles = getSampleStyleSheet()
+
+        # 各シートを処理
+        for sheet_idx, sheet_name in enumerate(wb.sheetnames):
+            ws = wb[sheet_name]
+
+            # シート名をタイトルとして追加
+            if sheet_idx > 0:
+                story.append(PageBreak())
+
+            title_style = ParagraphStyle(
+                "CustomTitle",
+                parent=styles["Heading1"],
+                fontSize=16,
+                textColor=colors.HexColor("#000000"),
+                spaceAfter=12,
+                alignment=TA_CENTER,
+            )
+            title = Paragraph(f"<b>{sheet_name}</b>", title_style)
+            story.append(title)
+            story.append(Spacer(1, 12))
+
+            # シートの使用範囲を取得
+            if ws.max_row == 0 or ws.max_column == 0:
+                continue
+
+            # 列幅を取得（Excelの列幅をmmに変換）
+            col_widths = []
+            for col_idx in range(1, min(ws.max_column + 1, 15)):  # 最大15列まで
+                col_letter = get_column_letter(col_idx)
+                # Excelの列幅を取得（デフォルトは約8.43文字分）
+                column_dimension = ws.column_dimensions.get(col_letter)
+                if column_dimension and column_dimension.width:
+                    # Excelの列幅（文字数）をmmに変換（1文字 ≈ 7mm）
+                    width_mm = column_dimension.width * 7
+                else:
+                    width_mm = 8.43 * 7  # デフォルト幅
+                col_widths.append(width_mm)
+
+            # データを読み込む（セルの書式、フォント、色などを保持）
+            data = []
+            row_heights = []
+
+            for row_idx in range(1, min(ws.max_row + 1, 100)):  # 最大100行まで
+                row_data = []
+                row_height = None
+
+                for col_idx in range(1, min(ws.max_column + 1, 15)):  # 最大15列まで
+                    cell = ws.cell(row=row_idx, column=col_idx)
+                    value = cell.value
+
+                    # 行の高さを取得
+                    if row_height is None:
+                        row_dimension = ws.row_dimensions.get(row_idx)
+                        if row_dimension and row_dimension.height:
+                            row_height = row_dimension.height * 0.75  # Excelのポイントをmmに変換
+                        else:
+                            row_height = 15  # デフォルト高さ
+
+                    # 値の処理
+                    cell_value = ""
+                    if value is None:
+                        cell_value = ""
+                    elif isinstance(value, datetime):
+                        cell_value = value.strftime("%Y年%m月%d日")
+                    elif isinstance(value, (int, float)):
+                        # 数値のフォーマットを適用
+                        if cell.number_format:
+                            fmt = str(cell.number_format)
+                            if "%" in fmt:
+                                cell_value = f"{value:.2f}%"
+                            elif "¥" in fmt or "yen" in fmt.lower() or "currency" in fmt.lower():
+                                cell_value = f"¥{value:,.0f}"
+                            elif "0" in fmt and "," in fmt:
+                                cell_value = f"{value:,.0f}"
+                            elif "." in fmt:
+                                cell_value = f"{value:.2f}"
+                            else:
+                                cell_value = f"{value:,.0f}" if isinstance(value, float) else str(int(value))
+                        else:
+                            cell_value = f"{value:,.0f}" if isinstance(value, float) else str(int(value))
+                    else:
+                        cell_value = str(value)
+
+                    row_data.append(cell_value)
+
+                # 空行でない場合のみ追加
+                if any(str(v).strip() for v in row_data):
+                    data.append(row_data)
+                    row_heights.append(row_height)
+
+            if data:
+                # 列幅を調整（ページ幅に収まるように）
+                page_width = A4[0] - 30 * mm
+                total_width = sum(col_widths) if col_widths else len(data[0]) * 50 * mm
+                if total_width > page_width:
+                    scale_factor = page_width / total_width
+                    col_widths = [w * scale_factor for w in col_widths]
+
+                # テーブルを作成
+                table = Table(data, colWidths=col_widths[: len(data[0])] if col_widths else None)
+
+                # テーブルスタイルを構築（Excelの書式を再現）
+                table_style = []
+
+                # 各セルのスタイルを適用
+                for row_idx, row_data in enumerate(data):
+                    for col_idx in range(len(row_data)):
+                        cell = ws.cell(row=row_idx + 1, column=col_idx + 1)
+
+                        # フォントスタイル
+                        font = cell.font
+                        font_name = "Helvetica"
+                        font_size = 9
+                        font_color = colors.black
+
+                        if font:
+                            if font.bold:
+                                font_name = "Helvetica-Bold"
+                            if font.size:
+                                font_size = int(font.size)
+                            if font.color and font.color.rgb:
+                                try:
+                                    rgb = font.color.rgb
+                                    if isinstance(rgb, str) and rgb.startswith("FF"):
+                                        rgb = rgb[2:]  # 'FF'プレフィックスを削除
+                                    font_color = colors.HexColor("#" + rgb)
+                                except Exception:
+                                    pass
+
+                        # 背景色
+                        fill = cell.fill
+                        bg_color = None
+                        if fill and fill.start_color and fill.start_color.rgb:
+                            try:
+                                rgb = fill.start_color.rgb
+                                if isinstance(rgb, str) and rgb.startswith("FF"):
+                                    rgb = rgb[2:]
+                                bg_color = colors.HexColor("#" + rgb)
+                            except Exception:
+                                pass
+
+                        # 配置
+                        alignment = cell.alignment
+                        align = TA_LEFT
+                        if alignment:
+                            if alignment.horizontal == "center":
+                                align = TA_CENTER
+                            elif alignment.horizontal == "right":
+                                align = TA_RIGHT
+                            elif alignment.horizontal == "justify":
+                                align = TA_JUSTIFY
+
+                        # スタイルを適用
+                        cell_range = (col_idx, row_idx)
+                        table_style.append(("FONTNAME", cell_range, cell_range, font_name))
+                        table_style.append(("FONTSIZE", cell_range, cell_range, font_size))
+                        table_style.append(("TEXTCOLOR", cell_range, cell_range, font_color))
+                        if bg_color:
+                            table_style.append(("BACKGROUND", cell_range, cell_range, bg_color))
+                        table_style.append(("ALIGN", cell_range, cell_range, align))
+
+                # 罫線を追加
+                table_style.append(("GRID", (0, 0), (-1, -1), 0.5, colors.grey))
+
+                # 行の高さを設定
+                for row_idx, height in enumerate(row_heights):
+                    if height:
+                        table_style.append(("ROWBACKGROUNDS", (0, row_idx), (-1, row_idx), [colors.white]))
+
+                table.setStyle(TableStyle(table_style))
+                story.append(KeepTogether(table))
+                story.append(Spacer(1, 20))
+
+        # PDFを生成
+        doc.build(story)
+
+        if os.path.exists(pdf_path):
+            return pdf_path
+        else:
+            return None
+
+    except ImportError as e:
+        print(f"必要なライブラリがインストールされていません: {str(e)}")
+        print("pip install reportlab Pillow を実行してください")
+        return None
+    except Exception as e:
+        print(f"PDF変換中にエラーが発生しました: {str(e)}")
+        import traceback
+
+        traceback.print_exc()
+        return None
+
+
 def _extract_year_month_from_sales(sales_filename: str) -> tuple[int | None, int | None]:
     """
     売上データファイル（Excel）から年と月を自動で抽出する内部関数
@@ -220,37 +460,108 @@ def download_page(history_id):
 @app.route("/download/<int:history_id>/file")
 def download_file(history_id):
     """
-    精算書ファイルをダウンロード
+    精算書ファイルをダウンロード（形式を指定）
     """
     history = SettlementHistory.query.get_or_404(history_id)
+    file_format = request.args.get("format", "excel")  # excel または pdf
 
     # ファイルの存在確認
     if not os.path.exists(history.file_path):
         flash(f"ファイルが見つかりません: {history.file_name}", "error")
         return redirect("/")
 
-    # ファイルをダウンロード
-    return send_from_directory(
-        os.path.dirname(history.file_path), os.path.basename(history.file_path), as_attachment=True
-    )
+    if file_format == "excel":
+        # Excelファイルをそのままダウンロード
+        return send_from_directory(
+            os.path.dirname(history.file_path), os.path.basename(history.file_path), as_attachment=True
+        )
+    elif file_format == "pdf":
+        # PDFに変換してダウンロード
+        try:
+            pdf_path = _convert_excel_to_pdf(history.file_path)
+            if pdf_path and os.path.exists(pdf_path):
+                return send_from_directory(
+                    os.path.dirname(pdf_path), os.path.basename(pdf_path), as_attachment=True
+                )
+            else:
+                flash("PDF変換に失敗しました。LibreOfficeがインストールされている必要があります。", "error")
+                return redirect(f"/download/{history_id}")
+        except Exception as e:
+            flash(f"PDF変換中にエラーが発生しました: {str(e)}", "error")
+            return redirect(f"/download/{history_id}")
+    else:
+        flash("無効なファイル形式が指定されました", "error")
+        return redirect(f"/download/{history_id}")
 
 
 @app.route("/history/<int:history_id>/download")
 def download_history(history_id):
     """
-    履歴から過去の精算書をダウンロード
+    履歴から過去の精算書をダウンロード（形式を指定）
     """
     history = SettlementHistory.query.get_or_404(history_id)
+    file_format = request.args.get("format", "excel")  # excel または pdf
 
     # ファイルの存在確認
     if not os.path.exists(history.file_path):
         flash(f"ファイルが見つかりません: {history.file_name}", "error")
         return redirect("/history")
 
-    # ファイルをダウンロード
-    return send_from_directory(
-        os.path.dirname(history.file_path), os.path.basename(history.file_path), as_attachment=True
-    )
+    if file_format == "excel":
+        # Excelファイルをそのままダウンロード
+        return send_from_directory(
+            os.path.dirname(history.file_path), os.path.basename(history.file_path), as_attachment=True
+        )
+    elif file_format == "pdf":
+        # PDFに変換してダウンロード
+        try:
+            pdf_path = _convert_excel_to_pdf(history.file_path)
+            if pdf_path and os.path.exists(pdf_path):
+                return send_from_directory(
+                    os.path.dirname(pdf_path), os.path.basename(pdf_path), as_attachment=True
+                )
+            else:
+                flash("PDF変換に失敗しました。LibreOfficeがインストールされている必要があります。", "error")
+                return redirect("/history")
+        except Exception as e:
+            flash(f"PDF変換中にエラーが発生しました: {str(e)}", "error")
+            return redirect("/history")
+    else:
+        flash("無効なファイル形式が指定されました", "error")
+        return redirect("/history")
+
+
+@app.route("/history/<int:history_id>/delete", methods=["POST"])
+def delete_history(history_id):
+    """
+    発行履歴を削除する
+    """
+    history = SettlementHistory.query.get_or_404(history_id)
+
+    try:
+        # ファイルが存在する場合は削除
+        if os.path.exists(history.file_path):
+            try:
+                os.remove(history.file_path)
+                # PDFファイルも存在する場合は削除
+                pdf_path = os.path.splitext(history.file_path)[0] + ".pdf"
+                if os.path.exists(pdf_path):
+                    os.remove(pdf_path)
+            except Exception as e:
+                print(f"ファイル削除エラー: {str(e)}")
+                # ファイル削除に失敗してもデータベースレコードは削除する
+
+        # データベースから削除
+        file_name = history.file_name
+        db.session.delete(history)
+        db.session.commit()
+
+        flash(f"発行履歴「{file_name}」を削除しました。", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"削除に失敗しました: {str(e)}", "error")
+
+    return redirect("/history")
 
 
 @app.route("/upload", methods=["POST"])
