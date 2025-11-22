@@ -51,6 +51,44 @@ def create():
     return render_template('programs/create.html', form=form)
 
 
+@program_bp.route('/edit/<int:id>', methods=['GET', 'POST'])
+def edit(id):
+    """体験プログラムを編集する"""
+    program = db.session.get(ExperienceProgram, id)
+    if not program:
+        abort(404)
+    
+    form = ExperienceProgramForm(obj=program)
+    
+    if form.validate_on_submit():
+        try:
+            # プログラム名の重複チェック（自分自身を除く）
+            existing_program = ExperienceProgram.query.filter(
+                ExperienceProgram.name == form.name.data,
+                ExperienceProgram.id != id
+            ).first()
+            if existing_program:
+                flash('このプログラム名は既に登録されています。', 'error')
+                return render_template('programs/edit.html', form=form, program=program)
+            
+            # プログラム情報を更新
+            program.name = form.name.data
+            program.description = form.description.data
+            program.price = form.price.data
+            program.capacity = form.capacity.data
+            
+            db.session.commit()
+            
+            flash('体験プログラムを更新しました。', 'success')
+            return redirect(url_for('program.index'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'体験プログラムの更新中にエラーが発生しました: {str(e)[:100]}', 'error')
+    
+    return render_template('programs/edit.html', form=form, program=program)
+
+
 @program_bp.route('/delete/<int:id>', methods=['POST'])
 def delete(id):
     """体験プログラムを削除する"""
