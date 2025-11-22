@@ -3,13 +3,25 @@
 db.sqlite
 __pycache__/
 instance/
-<<<<<<< HEAD
 *.db
 2.0.36
-=======
+uploads/
 *.pyc
 *.pyo
 *.pyd
 .Python
 migrations/versions/*.pyc
->>>>>>> 0ba6c74c70245a273989b3356430507d4923e121
+.DS_Store
+
+# アップロードファイルと出力ファイル
+settlement-app/uploads/
+settlement-app/outputs/
+
+# デバッグ用の一時ファイル
+*.txt
+!requirements.txt
+!README.md
+!TESTING.md
+!ACTION_GUIDE.md
+!TROUBLESHOOTING.md
+!QUICK_START.md

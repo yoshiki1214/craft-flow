@@ -28,6 +28,9 @@ class PosSales(db.Model):
         total_amount: POSレジ総合計金額
         pdf_source_file: 読み込み元PDFファイル名
         registration_date: 登録日時（自動設定）
+
+    Indexes:
+        idx_pos_sales_date: sale_date、pos_number、product_codeの複合インデックス
     """
 
     __tablename__ = "pos_sales"
@@ -46,7 +49,7 @@ class PosSales(db.Model):
     registration_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, comment="登録日時")
 
     # インデックスの定義（データ量が多い場合に備える）
-    __table_args__ = (db.Index("idx_pos_sales_date", "sale_date"),)
+    __table_args__ = (db.Index("idx_pos_sales_date", "sale_date", "pos_number", "product_code"),)
 
     def __repr__(self) -> str:
         """オブジェクトの文字列表現を返す"""

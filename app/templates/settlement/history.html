@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}発行履歴 - 精算書生成システム{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>精算書発行履歴</h1>
+    <p>過去に生成した精算書の一覧です。ダウンロードボタンから過去の精算書をダウンロードできます。</p>
+    
+    {% if histories %}
+    <table>
+        <thead>
+            <tr>
+                <th>発行日時</th>
+                <th>精算対象</th>
+                <th>ファイル名</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for history in histories %}
+            <tr>
+                <td>{{ history.created_at.strftime('%Y年%m月%d日 %H:%M') }}</td>
+                <td>{{ history.year }}年{{ history.month }}月</td>
+                <td>{{ history.file_name }}</td>
+                <td>
+                    <div class="download-buttons-group">
+                        <a href="{{ url_for('settlement.download_history', history_id=history.id, format='pdf') }}" class="btn btn-small btn-danger">PDF</a>
+                        <a href="{{ url_for('settlement.download_history', history_id=history.id, format='excel') }}" class="btn btn-small">Excel</a>
+                        <form method="POST" action="{{ url_for('settlement.delete_history', history_id=history.id) }}" style="display: inline;" onsubmit="return confirm('この発行履歴を削除しますか？\nファイルも削除されます。');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-small btn-delete">削除</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="history-empty">発行履歴がありません。ファイルアップロードページから精算書を生成してください。</p>
+    {% endif %}
+    
+    <div style="margin-top: 2rem;">
+        <a href="{{ url_for('settlement.index') }}" class="btn">ファイルをアップロード</a>
+    </div>
+</div>
+{% endblock %}
+
