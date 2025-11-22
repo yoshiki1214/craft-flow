@@ -28,6 +28,7 @@
                         <a href="{{ url_for('settlement.download_history', history_id=history.id, format='pdf') }}" class="btn btn-small btn-danger">PDF</a>
                         <a href="{{ url_for('settlement.download_history', history_id=history.id, format='excel') }}" class="btn btn-small">Excel</a>
                         <form method="POST" action="{{ url_for('settlement.delete_history', history_id=history.id) }}" style="display: inline;" onsubmit="return confirm('この発行履歴を削除しますか？\nファイルも削除されます。');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <button type="submit" class="btn btn-small btn-delete">削除</button>
                         </form>
                     </div>

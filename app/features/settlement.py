@@ -4,7 +4,7 @@
 精算書ファイルの作成処理を行う。
 """
 
-from flask import Blueprint, render_template, request, flash, redirect, send_from_directory
+from flask import Blueprint, render_template, request, flash, redirect, send_from_directory, url_for
 from flask_login import login_required
 from werkzeug.utils import secure_filename
 import os
@@ -319,10 +319,10 @@ def _extract_year_month_from_sales(sales_filename: str) -> tuple[int | None, int
 def index():
     """
     トップページ（/）にアクセスされたときに呼ばれる関数
-    ファイルアップロード用のHTML画面を表示します。
+    アップロードページにリダイレクトします。
     """
-    # "templates"フォルダの中の"settlement/upload.html"を読み込んでユーザーに表示
-    return render_template("settlement/upload.html")
+    from flask import url_for
+    return redirect(url_for("settlement.upload_page"))
 
 
 @settlement_bp.route("/history", methods=["GET"])
@@ -330,10 +330,12 @@ def history_page():
     """
     発行履歴一覧ページを表示
     """
+    from flask_wtf.csrf import generate_csrf
+    
     # 発行履歴を新しい順に取得
     histories = SettlementHistory.query.order_by(SettlementHistory.created_at.desc()).all()
 
-    return render_template("settlement/history.html", histories=histories)
+    return render_template("settlement/history.html", histories=histories, csrf_token=generate_csrf())
 
 
 @settlement_bp.route("/download/<int:history_id>")
@@ -346,7 +348,7 @@ def download_page(history_id):
     # ファイルの存在確認
     if not os.path.exists(history.file_path):
         flash(f"ファイルが見つかりません: {history.file_name}", "error")
-        return redirect("/")
+        return redirect(url_for("settlement.history_page"))
 
     return render_template("settlement/download.html", history=history)
 
@@ -362,7 +364,7 @@ def download_file(history_id):
     # ファイルの存在確認
     if not os.path.exists(history.file_path):
         flash(f"ファイルが見つかりません: {history.file_name}", "error")
-        return redirect("/")
+        return redirect(url_for("settlement.history_page"))
 
     if file_format == "excel":
         # Excelファイルをそのままダウンロード
@@ -386,13 +388,13 @@ def download_file(history_id):
                         "PDF変換に失敗しました。LibreOfficeが正しくインストールされているか確認してください。",
                         "error",
                     )
-                return redirect(f"/download/{history_id}")
+                return redirect(url_for("settlement.download_page", history_id=history_id))
         except Exception as e:
             flash(f"PDF変換中にエラーが発生しました: {str(e)}", "error")
-            return redirect(f"/download/{history_id}")
+            return redirect(url_for("settlement.download_page", history_id=history_id))
     else:
         flash("無効なファイル形式が指定されました", "error")
-        return redirect(f"/download/{history_id}")
+        return redirect(url_for("settlement.download_page", history_id=history_id))
 
 
 @settlement_bp.route("/history/<int:history_id>/download")
@@ -406,7 +408,7 @@ def download_history(history_id):
     # ファイルの存在確認
     if not os.path.exists(history.file_path):
         flash(f"ファイルが見つかりません: {history.file_name}", "error")
-        return redirect("/history")
+        return redirect(url_for("settlement.history_page"))
 
     if file_format == "excel":
         # Excelファイルをそのままダウンロード
@@ -430,13 +432,13 @@ def download_history(history_id):
                         "PDF変換に失敗しました。LibreOfficeが正しくインストールされているか確認してください。",
                         "error",
                     )
-                return redirect("/history")
+                return redirect(url_for("settlement.history_page"))
         except Exception as e:
             flash(f"PDF変換中にエラーが発生しました: {str(e)}", "error")
-            return redirect("/history")
+            return redirect(url_for("settlement.history_page"))
     else:
         flash("無効なファイル形式が指定されました", "error")
-        return redirect("/history")
+        return redirect(url_for("settlement.history_page"))
 
 
 @settlement_bp.route("/history/<int:history_id>/delete", methods=["POST"])
@@ -469,13 +471,30 @@ def delete_history(history_id):
         db.session.rollback()
         flash(f"削除に失敗しました: {str(e)}", "error")
 
-    return redirect("/history")
+    return redirect(url_for("settlement.history_page"))
 
 
-@settlement_bp.route("/upload", methods=["POST"])
+@settlement_bp.route("/upload", methods=["GET", "POST"])
+def upload_page():
+    """
+    ファイルアップロードページの表示と処理を行う関数
+    GET: アップロード画面を表示
+    POST: ファイルアップロード処理を実行
+    """
+    from flask import current_app
+    from flask_wtf.csrf import generate_csrf
+    
+    # GETリクエストの場合は、アップロード画面を表示
+    if request.method == "GET":
+        return render_template("settlement/upload.html", csrf_token=generate_csrf())
+    
+    # POSTリクエストの場合は、ファイルアップロード処理を実行
+    return upload_files()
+
+
 def upload_files():
     """
-    ファイルアップロード処理のメインとなる関数
+    ファイルアップロード処理のメインとなる関数（内部関数）
     顧客データと売上データの両方がアップロードされたら、自動で精算書を生成します。
     """
     from flask import current_app
@@ -547,7 +566,7 @@ def upload_files():
     # どちらのファイルも選択されずにフォームが送信された場合
     if not customer_selected and not sales_selected:
         flash("少なくとも1つのファイルを選択してください", "error")
-        return redirect("/")  # トップページに戻る
+        return redirect(url_for("settlement.upload_page"))
 
     # --- 精算書の自動生成処理 ---
     # 顧客データと売上データの両方が正常にアップロードされた場合に実行
@@ -562,7 +581,7 @@ def upload_files():
                     "売上データから年と月を抽出できませんでした。売上データに有効な日付が含まれている必要があります。",
                     "error",
                 )
-                return redirect("/")
+                return redirect(url_for("settlement.upload_page"))
 
             # --- 精算書生成に必要なファイルパスを準備 ---
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -575,13 +594,13 @@ def upload_files():
             # 各ファイルが実際に存在するか確認
             if not os.path.exists(customer_file):
                 flash(f"顧客データファイルが見つかりません: {customer_filename}", "error")
-                return redirect("/")
+                return redirect(url_for("settlement.upload_page"))
             if not os.path.exists(sales_file):
                 flash(f"売上データファイルが見つかりません: {sales_filename}", "error")
-                return redirect("/")
+                return redirect(url_for("settlement.upload_page"))
             if not os.path.exists(template_file):
                 flash("テンプレートファイルが見つかりません: settlement_template.xlsx", "error")
-                return redirect("/")
+                return redirect(url_for("settlement.upload_page"))
 
             # --- 精算書生成の実行 ---
             # 別のファイル(services/settlement_generator.py)に定義された関数を呼び出す
@@ -610,7 +629,7 @@ def upload_files():
                 db.session.commit()
 
                 # ダウンロードページにリダイレクト
-                return redirect(f"/download/{history.id}")
+                return redirect(url_for("settlement.download_page", history_id=history.id))
             else:
                 flash("精算書の生成に失敗しました。対象期間のデータが存在しない可能性があります。", "error")
 
@@ -621,8 +640,8 @@ def upload_files():
             # その他の予期せぬエラー
             flash(f"精算書の自動生成に失敗しました: {str(e)}", "error")
 
-    # 処理が終わったらトップページにリダイレクト
-    return redirect("/")
+    # 処理が終わったらアップロードページにリダイレクト
+    return redirect(url_for("settlement.upload_page"))
 
 
 @settlement_bp.route("/upload/customers", methods=["POST"])
@@ -635,13 +654,13 @@ def upload_customers():
 
     if "file" not in request.files:
         flash("ファイルが選択されていません", "error")
-        return redirect("/")
+        return redirect(url_for("settlement.upload_page"))
 
     file = request.files["file"]
 
     if file.filename == "":
         flash("ファイルが選択されていません", "error")
-        return redirect("/")
+        return redirect(url_for("settlement.upload_page"))
 
     customers_folder = os.path.join(current_app.config["UPLOAD_FOLDER"], "customers")
     if not os.path.exists(customers_folder):
@@ -660,7 +679,7 @@ def upload_customers():
             "error",
         )
 
-    return redirect("/")
+    return redirect(url_for("settlement.upload_page"))
 
 
 @settlement_bp.route("/upload/sales", methods=["POST"])
@@ -673,13 +692,13 @@ def upload_sales():
 
     if "file" not in request.files:
         flash("ファイルが選択されていません", "error")
-        return redirect("/")
+        return redirect(url_for("settlement.upload_page"))
 
     file = request.files["file"]
 
     if file.filename == "":
         flash("ファイルが選択されていません", "error")
-        return redirect("/")
+        return redirect(url_for("settlement.upload_page"))
 
     sales_folder = os.path.join(current_app.config["UPLOAD_FOLDER"], "sales")
     if not os.path.exists(sales_folder):
@@ -698,7 +717,7 @@ def upload_sales():
             "error",
         )
 
-    return redirect("/")
+    return redirect(url_for("settlement.upload_page"))
 
 
 @settlement_bp.route("/uploads/<filename>")
@@ -730,10 +749,10 @@ def generate_settlements():
         # バリデーション（入力値のチェック）
         if not customer_filename or not sales_filename:
             flash("顧客データファイルと売上データファイルの両方を指定してください", "error")
-            return redirect("/")
+            return redirect(url_for("settlement.upload_page"))
         if not (1 <= month <= 12):
             flash("月は1から12の間で指定してください", "error")
-            return redirect("/")
+            return redirect(url_for("settlement.upload_page"))
 
         # ファイルパスの構築
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -746,13 +765,13 @@ def generate_settlements():
         # ファイルの存在確認
         if not os.path.exists(customer_file):
             flash(f"顧客データファイルが見つかりません: {customer_filename}", "error")
-            return redirect("/")
+            return redirect(url_for("settlement.upload_page"))
         if not os.path.exists(sales_file):
             flash(f"売上データファイルが見つかりません: {sales_filename}", "error")
-            return redirect("/")
+            return redirect(url_for("settlement.upload_page"))
         if not os.path.exists(template_file):
             flash("テンプレートファイルが見つかりません: 委託販売精算書.xlsx", "error")
-            return redirect("/")
+            return redirect(url_for("settlement.upload_page"))
 
         # 出力ディレクトリの準備
         output_dir = os.path.join(base_dir, "outputs")
@@ -780,7 +799,7 @@ def generate_settlements():
     except Exception as e:
         flash(f"精算書の生成に失敗しました: {str(e)}", "error")
 
-    return redirect("/")
+    return redirect(url_for("settlement.upload_page"))
 
 
 @settlement_bp.route("/outputs/<filename>")
