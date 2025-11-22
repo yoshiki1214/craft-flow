@@ -5,3 +5,23 @@ __pycache__/
 instance/
 *.db
 2.0.36
+uploads/
+*.pyc
+*.pyo
+*.pyd
+.Python
+migrations/versions/*.pyc
+.DS_Store
+
+# アップロードファイルと出力ファイル
+settlement-app/uploads/
+settlement-app/outputs/
+
+# デバッグ用の一時ファイル
+*.txt
+!requirements.txt
+!README.md
+!TESTING.md
+!ACTION_GUIDE.md
+!TROUBLESHOOTING.md
+!QUICK_START.md

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}新規登録 - Craft Flow{% endblock %}
+
+{% block content %}
+<div class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                アカウント登録
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                新しいアカウントを作成してください
+            </p>
+        </div>
+        <form class="mt-8 space-y-6" method="POST" action="{{ url_for('auth.register') }}" novalidate>
+            {{ form.csrf_token }}
+            <div class="space-y-4">
+                <div data-field-group="username">
+                    <label for="{{ form.username.id }}" class="block text-sm font-medium {% if form.username.errors %}text-red-700{% else %}text-gray-700{% endif %}">ユーザー名 <span class="text-red-600">*</span></label>
+                    {% if form.username.errors %}
+                    {{ form.username(class="mt-1 block w-full rounded-md border-red-500 shadow-sm py-2.5 px-3 focus:border-red-500 focus:ring-red-500 sm:text-sm", style="border: 1px solid #dc2626 !important;", **{"data-field": "username"}) }}
+                    {% else %}
+                    {{ form.username(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2.5 px-3 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm", **{"data-field": "username"}) }}
+                    {% endif %}
+                    {% if form.username.errors %}
+                    <p class="mt-1 text-sm text-red-600 font-medium" data-field="username">{{ form.username.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <div data-field-group="email">
+                    <label for="{{ form.email.id }}" class="block text-sm font-medium {% if form.email.errors %}text-red-700{% else %}text-gray-700{% endif %}">メールアドレス <span class="text-red-600">*</span></label>
+                    {% if form.email.errors %}
+                    {{ form.email(class="mt-1 block w-full rounded-md border-red-500 shadow-sm py-2.5 px-3 focus:border-red-500 focus:ring-red-500 sm:text-sm", style="border: 1px solid #dc2626 !important;", **{"data-field": "email"}) }}
+                    {% else %}
+                    {{ form.email(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2.5 px-3 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm", **{"data-field": "email"}) }}
+                    {% endif %}
+                    {% if form.email.errors %}
+                    <p class="mt-1 text-sm text-red-600 font-medium" data-field="email">{{ form.email.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <div data-field-group="password">
+                    <label for="{{ form.password.id }}" class="block text-sm font-medium {% if form.password.errors %}text-red-700{% else %}text-gray-700{% endif %}">パスワード <span class="text-red-600">*</span></label>
+                    <div class="relative">
+                        {% if form.password.errors %}
+                        {{ form.password(id="password", class="mt-1 block w-full rounded-md border-red-500 shadow-sm py-2.5 px-3 pr-10 focus:border-red-500 focus:ring-red-500 sm:text-sm", style="border: 1px solid #dc2626 !important;", **{"data-field": "password"}) }}
+                        {% else %}
+                        {{ form.password(id="password", class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2.5 px-3 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm", **{"data-field": "password"}) }}
+                        {% endif %}
+                        <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none" aria-label="パスワードを表示">
+                            <svg id="eyeIcon" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <svg id="eyeOffIcon" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                            </svg>
+                        </button>
+                    </div>
+                    {% if form.password.errors %}
+                    <p class="mt-1 text-sm text-red-600 font-medium" data-field="password">{{ form.password.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <div data-field-group="password_confirm">
+                    <label for="{{ form.password_confirm.id }}" class="block text-sm font-medium {% if form.password_confirm.errors %}text-red-700{% else %}text-gray-700{% endif %}">パスワード（確認） <span class="text-red-600">*</span></label>
+                    <div class="relative">
+                        {% if form.password_confirm.errors %}
+                        {{ form.password_confirm(id="password_confirm", class="mt-1 block w-full rounded-md border-red-500 shadow-sm py-2.5 px-3 pr-10 focus:border-red-500 focus:ring-red-500 sm:text-sm", style="border: 1px solid #dc2626 !important;", **{"data-field": "password_confirm"}) }}
+                        {% else %}
+                        {{ form.password_confirm(id="password_confirm", class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2.5 px-3 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm", **{"data-field": "password_confirm"}) }}
+                        {% endif %}
+                        <button type="button" id="togglePasswordConfirm" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none" aria-label="パスワードを表示">
+                            <svg id="eyeIconConfirm" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <svg id="eyeOffIconConfirm" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                            </svg>
+                        </button>
+                    </div>
+                    {% if form.password_confirm.errors %}
+                    <p class="mt-1 text-sm text-red-600 font-medium" data-field="password_confirm">{{ form.password_confirm.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <div data-field-group="department">
+                    <label for="{{ form.department.id }}" class="block text-sm font-medium {% if form.department.errors %}text-red-700{% else %}text-gray-700{% endif %}">所属 <span class="text-red-600">*</span></label>
+                    {% if form.department.errors %}
+                    {{ form.department(class="mt-1 block w-full rounded-md border-red-500 shadow-sm py-2.5 px-3 focus:border-red-500 focus:ring-red-500 sm:text-sm", style="border: 1px solid #dc2626 !important;", **{"data-field": "department"}) }}
+                    {% else %}
+                    {{ form.department(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2.5 px-3 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm", **{"data-field": "department"}) }}
+                    {% endif %}
+                    {% if form.department.errors %}
+                    <p class="mt-1 text-sm text-red-600 font-medium" data-field="department">{{ form.department.errors[0] }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                {{ form.submit }}
+            </div>
+
+            <div class="text-center">
+                <a href="{{ url_for('auth.login') }}" class="text-sm text-indigo-600 hover:text-indigo-800">
+                    既にアカウントをお持ちの方はこちら
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+    // パスワード表示/非表示の切り替え
+    const togglePassword = document.getElementById('togglePassword');
+    const password = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+    const eyeOffIcon = document.getElementById('eyeOffIcon');
+
+    if (togglePassword && password && eyeIcon && eyeOffIcon) {
+        togglePassword.addEventListener('click', function () {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+
+            if (type === 'text') {
+                eyeIcon.classList.add('hidden');
+                eyeOffIcon.classList.remove('hidden');
+            } else {
+                eyeIcon.classList.remove('hidden');
+                eyeOffIcon.classList.add('hidden');
+            }
+        });
+    }
+
+    // パスワード確認表示/非表示の切り替え
+    const togglePasswordConfirm = document.getElementById('togglePasswordConfirm');
+    const passwordConfirm = document.getElementById('password_confirm');
+    const eyeIconConfirm = document.getElementById('eyeIconConfirm');
+    const eyeOffIconConfirm = document.getElementById('eyeOffIconConfirm');
+
+    if (togglePasswordConfirm && passwordConfirm && eyeIconConfirm && eyeOffIconConfirm) {
+        togglePasswordConfirm.addEventListener('click', function () {
+            const type = passwordConfirm.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordConfirm.setAttribute('type', type);
+
+            if (type === 'text') {
+                eyeIconConfirm.classList.add('hidden');
+                eyeOffIconConfirm.classList.remove('hidden');
+            } else {
+                eyeIconConfirm.classList.remove('hidden');
+                eyeOffIconConfirm.classList.add('hidden');
+            }
+        });
+    }
+</script>
+{% endblock %}

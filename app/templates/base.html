@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+<<<<<<< HEAD
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,3 +31,70 @@
 </body>
 </html>
 
+=======
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Craft Flow{% endblock %}</title>
+    <!-- Google Fonts (Noto Sans JP) を読み込む設定（400:標準, 700:太字） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="bg-gray-50">
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('main.dashboard') }}" class="text-xl font-bold text-gray-900">
+                            Craft Flow
+                        </a>
+                        {% else %}
+                        <span class="text-xl font-bold text-gray-900">Craft Flow</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if current_user.is_authenticated %}
+                <div class="flex items-center">
+                    <span class="text-sm text-gray-700 mr-4">{{ current_user.username }}さん</span>
+                    <a href="{{ url_for('auth.logout') }}" class="text-sm text-indigo-600 hover:text-indigo-800">
+                        ログアウト
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="mb-4 rounded-md p-4 {% if category == 'error' %}bg-red-50 text-red-800{% elif category == 'warning' %}bg-yellow-50 text-yellow-800{% else %}bg-green-50 text-green-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
+>>>>>>> main
