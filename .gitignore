@@ -9,6 +9,11 @@ uploads/
 *.pyd
 .Python
 migrations/versions/*.pyc
+.DS_Store
+
+# アップロードファイルと出力ファイル
+settlement-app/uploads/
+settlement-app/outputs/
 
 # デバッグ用の一時ファイル
 *.txt
