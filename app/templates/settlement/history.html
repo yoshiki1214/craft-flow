@@ -22,7 +22,7 @@
             <tr>
                 <td>{{ history.created_at.strftime('%Y年%m月%d日 %H:%M') }}</td>
                 <td>{{ history.year }}年{{ history.month }}月</td>
-                <td>{{ history.file_name }}</td>
+                <td>{{ history.file_name.rsplit('.', 1)[0] if '.' in history.file_name else history.file_name }}</td>
                 <td>
                     <div class="download-buttons-group">
                         <a href="{{ url_for('settlement.download_history', history_id=history.id, format='pdf') }}" class="btn btn-small btn-danger">PDF</a>
