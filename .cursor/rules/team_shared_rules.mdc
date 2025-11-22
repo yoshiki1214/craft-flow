@@ -1,0 +1,128 @@
+チーム共有用：開発共通事項
+
+1. 開発全体方針
+
+段階的実装方針
+
+まずは Must（必須） のみを確実に実装。
+
+Mustが安定稼働した段階で Should に着手。
+
+Must実装中は仕様凍結（不要な機能追加・UI変更は行わない）。
+
+開発の基本原則
+
+最小単位でのコミット・レビューを徹底。
+
+コードレビューは「品質保証＋ナレッジ共有」を目的とする。
+
+機能間の依存を最小化し、モジュール単位で責任を分離。
+
+2. 命名・構造ルール（共有）
+
+ファイル・ディレクトリは機能単位で分離（例：/zengin/, /invoice/, /reservation/）。
+
+共通モジュール（コンポーネント／ユーティリティ）は /common/ 配下に集約。
+
+命名例（チーム内共通ルール）:
+
+クラス：PascalCase
+関数/変数：camelCase
+ファイル/ディレクトリ：snake_case
+
+3. コミットメッセージ規約
+
+タイプ一覧
+feat: 新機能追加
+fix: バグ修正
+docs: ドキュメント変更
+style: コードスタイル修正
+refactor: リファクタリング
+test: テスト追加・修正
+chore: 雑務
+
+メッセージ例
+feat: 全銀フォーマット変換アップロード処理を追加
+fix: 集計画面のページネーションバグを修正
+docs: READMEに環境構築手順を追記
+
+4. ブランチ運用ルール
+main：安定ブランチ
+develop：開発統合ブランチ
+feature/<name>：機能ブランチ
+fix/<name>：修正ブランチ
+docs/<name>：ドキュメントブランチ
+
+5. レビュー・マージポリシー
+PRは最低1名のレビュー必須
+自己承認・自己マージ禁止
+レビュー観点：命名・スタイル／メッセージ規約／保守性／バリデーション／テスト
+
+6. テスト方針
+Must機能は必ずUnit Test
+ShouldでIntegration/UI Test追加
+命名：test_<対象>_<目的>.py
+
+7. ドキュメント管理ルール
+/docs/ に一元管理
+命名：{YYYY-MM-DD}_{種別}_{タイトル}.md
+決定事項は必ず履歴化
+
+8. チーム協業ルール
+AIを設計・レビュー補助に活用
+仕様変更はドキュメントへ反映
+担当範囲を明確化
+
+9. リリースフロー
+ローカルテスト → PR → develop → 結合テスト → main → タグ → デプロイ
+
+10. 必要画面一覧（Must・課題4DB除外）
+共通：トップ（ダッシュボード）
+課題1：アップロード／変換・DL
+課題2：アップロード／集計・DL
+課題3：アップロード／請求書発行
+課題4：カレンダー／予約登録／詳細／編集
+        染め物屋高橋向け機能: 4. 予約管理機能
+        [ ] 予約登録フォーム
+        [ ] 予約データの保存
+        [ ] カレンダー表示
+        [ ] ダブルブッキングチェック
+         予約データの一元管理アプリ
+    来店予約を登録方法が複数あり、それを一元管理する
+    現在の予約ルートは以下の通り
+    - じゃらん等の予約サイト
+    - 自社への電話
+    - 自社の予約サイト
+    - 業務委託先への電話
+    一元管理はデータベースで行う
+    予約状況をカレンダー表示できるようにする
+        ライブラリ
+基本構成:
+Flask または FastAPI: Webフレームワーク
+SQLAlchemy: ORM（データベース操作）
+PostgreSQL / MySQL: データベース（選択）
+追加機能:
+FullCalendar.js: カレンダー表示（フロントエンド）
+requests: 外部予約サイトAPI連携
+BeautifulSoup4: スクレイピングが必要な場合
+Celery: バックグラウンドタスク処理（定期的なデータ取得等）
+ルーティング
+/reservations/ - 予約カレンダー
+/reservations/list - 予約一覧（リスト）
+/reservations/{id} - 予約詳細
+/reservations/create - 予約登録
+/reservations/{id}/edit - 予約編集
+/reservations/statistics - 統計情報
+/reservations/settings - 設定
+/reservations/customers - 顧客一覧
+/reservations/customers/{id} - 顧客詳細
+API エンドポイント
+/reservations/api/calendar - カレンダーデータ取得（JSON）
+/reservations/api/availability - 予約可能枠取得（JSON）
+/reservations/api/book - 予約登録（JSON）
+/reservations/import/external - 外部サイト連携（Webhook）
+共通で便利なライブラリ
+
+python-dotenv: 環境変数管理
+loguru: ロギング
+pytest: テスト

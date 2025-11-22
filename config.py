@@ -16,6 +16,11 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or f'sqlite:///{basedir / "instance" / "app.db"}'
 
+    @staticmethod
+    def init_app(app):
+        """アプリケーション固有の初期化処理"""
+        pass
+
 
 class DevelopmentConfig(Config):
     """開発環境設定"""

@@ -56,3 +56,4 @@ class SettlementHistory(db.Model):
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
+
