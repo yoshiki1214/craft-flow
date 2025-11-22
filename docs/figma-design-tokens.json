@@ -1,0 +1,693 @@
+{
+  "$schema": "https://schema.figmatokens.com/v1",
+  "name": "全銀フォーマット変換システム - デザイントークン",
+  "version": "1.0.0",
+  "colors": {
+    "primary": {
+      "blue-500": {
+        "value": "#3B82F6",
+        "type": "color",
+        "description": "アイコン背景、アクセント"
+      },
+      "blue-600": {
+        "value": "#2563EB",
+        "type": "color",
+        "description": "プライマリボタン、リンク、グラデーション開始"
+      },
+      "blue-700": {
+        "value": "#1D4ED8",
+        "type": "color",
+        "description": "ホバー状態"
+      },
+      "blue-800": {
+        "value": "#1E40AF",
+        "type": "color",
+        "description": "ホバー時のリンク"
+      },
+      "cyan-600": {
+        "value": "#0891B2",
+        "type": "color",
+        "description": "グラデーション終点、アクセント"
+      },
+      "cyan-700": {
+        "value": "#0E7490",
+        "type": "color",
+        "description": "ホバー状態"
+      },
+      "sky-600": {
+        "value": "#0284C7",
+        "type": "color",
+        "description": "グラデーション中間"
+      }
+    },
+    "neutral": {
+      "gray-50": {
+        "value": "#F9FAFB",
+        "type": "color",
+        "description": "ページ背景"
+      },
+      "gray-100": {
+        "value": "#F3F4F6",
+        "type": "color",
+        "description": "ボーダー、ホバー背景"
+      },
+      "gray-200": {
+        "value": "#E5E7EB",
+        "type": "color",
+        "description": "ボーダー"
+      },
+      "gray-300": {
+        "value": "#D1D5DB",
+        "type": "color",
+        "description": "ファイルアップロードボーダー"
+      },
+      "gray-400": {
+        "value": "#9CA3AF",
+        "type": "color",
+        "description": "プレースホルダー"
+      },
+      "gray-500": {
+        "value": "#6B7280",
+        "type": "color",
+        "description": "サブテキスト、フッター"
+      },
+      "gray-700": {
+        "value": "#374151",
+        "type": "color",
+        "description": "本文テキスト"
+      },
+      "gray-900": {
+        "value": "#111827",
+        "type": "color",
+        "description": "見出し（予備）"
+      },
+      "white": {
+        "value": "#FFFFFF",
+        "type": "color",
+        "description": "背景、テキスト（ボタン内）"
+      }
+    },
+    "semantic": {
+      "error": {
+        "50": {
+          "value": "#FEF2F2",
+          "type": "color",
+          "description": "エラー背景"
+        },
+        "200": {
+          "value": "#FECACA",
+          "type": "color",
+          "description": "エラーボーダー"
+        },
+        "400": {
+          "value": "#F87171",
+          "type": "color",
+          "description": "エラーアイコン"
+        },
+        "800": {
+          "value": "#991B1B",
+          "type": "color",
+          "description": "エラーテキスト"
+        }
+      },
+      "success": {
+        "50": {
+          "value": "#EFF6FF",
+          "type": "color",
+          "description": "成功背景、ホバー背景"
+        },
+        "200": {
+          "value": "#BFDBFE",
+          "type": "color",
+          "description": "成功ボーダー"
+        },
+        "400": {
+          "value": "#60A5FA",
+          "type": "color",
+          "description": "成功アイコン"
+        },
+        "800": {
+          "value": "#1E40AF",
+          "type": "color",
+          "description": "成功テキスト"
+        }
+      }
+    },
+    "gradient": {
+      "primary": {
+        "value": {
+          "type": "linear",
+          "stops": [
+            {
+              "position": 0,
+              "color": "#3B82F6"
+            },
+            {
+              "position": 100,
+              "color": "#0891B2"
+            }
+          ],
+          "rotation": 135
+        },
+        "type": "gradient",
+        "description": "アイコン背景、タイトル背景"
+      },
+      "button": {
+        "value": {
+          "type": "linear",
+          "stops": [
+            {
+              "position": 0,
+              "color": "#2563EB"
+            },
+            {
+              "position": 50,
+              "color": "#0891B2"
+            },
+            {
+              "position": 100,
+              "color": "#0284C7"
+            }
+          ],
+          "rotation": 90
+        },
+        "type": "gradient",
+        "description": "ボタン背景"
+      },
+      "button-hover": {
+        "value": {
+          "type": "linear",
+          "stops": [
+            {
+              "position": 0,
+              "color": "#1D4ED8"
+            },
+            {
+              "position": 50,
+              "color": "#0E7490"
+            },
+            {
+              "position": 100,
+              "color": "#0369A1"
+            }
+          ],
+          "rotation": 90
+        },
+        "type": "gradient",
+        "description": "ボタンホバー背景"
+      },
+      "text": {
+        "value": {
+          "type": "linear",
+          "stops": [
+            {
+              "position": 0,
+              "color": "#2563EB"
+            },
+            {
+              "position": 100,
+              "color": "#0891B2"
+            }
+          ],
+          "rotation": 90
+        },
+        "type": "gradient",
+        "description": "グラデーションテキスト"
+      },
+      "card": {
+        "value": {
+          "type": "linear",
+          "stops": [
+            {
+              "position": 0,
+              "color": "#FFFFFF",
+              "opacity": 1
+            },
+            {
+              "position": 50,
+              "color": "#EFF6FF",
+              "opacity": 0.3
+            },
+            {
+              "position": 100,
+              "color": "#CFFAFE",
+              "opacity": 0.3
+            }
+          ],
+          "rotation": 135
+        },
+        "type": "gradient",
+        "description": "メインカード背景"
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": {
+        "value": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+        "type": "fontFamily",
+        "description": "基本フォント"
+      },
+      "mono": {
+        "value": "ui-monospace, SFMono-Regular, \"SF Mono\", Menlo, Consolas, monospace",
+        "type": "fontFamily",
+        "description": "等幅フォント（ファイル名表示用）"
+      }
+    },
+    "fontSize": {
+      "h1": {
+        "value": "60px",
+        "type": "fontSize",
+        "description": "メインタイトル"
+      },
+      "h2": {
+        "value": "30px",
+        "type": "fontSize",
+        "description": "サブタイトル、ボタンテキスト"
+      },
+      "h3": {
+        "value": "24px",
+        "type": "fontSize",
+        "description": "セクション見出し"
+      },
+      "body-large": {
+        "value": "24px",
+        "type": "fontSize",
+        "description": "大きな本文"
+      },
+      "body": {
+        "value": "16px",
+        "type": "fontSize",
+        "description": "標準本文"
+      },
+      "body-small": {
+        "value": "14px",
+        "type": "fontSize",
+        "description": "小さな本文、フッター"
+      },
+      "button": {
+        "value": "30px",
+        "type": "fontSize",
+        "description": "ボタンテキスト"
+      },
+      "caption": {
+        "value": "18px",
+        "type": "fontSize",
+        "description": "キャプション、ファイル名表示"
+      }
+    },
+    "fontWeight": {
+      "regular": {
+        "value": "400",
+        "type": "fontWeight",
+        "description": "通常"
+      },
+      "semibold": {
+        "value": "600",
+        "type": "fontWeight",
+        "description": "やや太字"
+      },
+      "bold": {
+        "value": "700",
+        "type": "fontWeight",
+        "description": "太字"
+      },
+      "extrabold": {
+        "value": "800",
+        "type": "fontWeight",
+        "description": "極太"
+      }
+    },
+    "lineHeight": {
+      "tight": {
+        "value": "1.1",
+        "type": "lineHeight",
+        "description": "タイトル用"
+      },
+      "normal": {
+        "value": "1.5",
+        "type": "lineHeight",
+        "description": "標準"
+      },
+      "relaxed": {
+        "value": "1.75",
+        "type": "lineHeight",
+        "description": "ゆったり"
+      }
+    },
+    "textStyles": {
+      "heading-1": {
+        "fontSize": "{typography.fontSize.h1}",
+        "fontWeight": "{typography.fontWeight.extrabold}",
+        "lineHeight": "{typography.lineHeight.tight}",
+        "fontFamily": "{typography.fontFamily.sans}",
+        "color": "{colors.gradient.text}",
+        "description": "メインタイトル（グラデーション）"
+      },
+      "heading-2": {
+        "fontSize": "{typography.fontSize.h2}",
+        "fontWeight": "{typography.fontWeight.extrabold}",
+        "lineHeight": "{typography.lineHeight.normal}",
+        "fontFamily": "{typography.fontFamily.sans}",
+        "color": "{colors.primary.blue-600}",
+        "description": "サブタイトル"
+      },
+      "body-large": {
+        "fontSize": "{typography.fontSize.body-large}",
+        "fontWeight": "{typography.fontWeight.regular}",
+        "lineHeight": "{typography.lineHeight.relaxed}",
+        "fontFamily": "{typography.fontFamily.sans}",
+        "color": "{colors.neutral.gray-700}",
+        "description": "大きな本文"
+      },
+      "body": {
+        "fontSize": "{typography.fontSize.body}",
+        "fontWeight": "{typography.fontWeight.regular}",
+        "lineHeight": "{typography.lineHeight.normal}",
+        "fontFamily": "{typography.fontFamily.sans}",
+        "color": "{colors.neutral.gray-700}",
+        "description": "標準本文"
+      },
+      "caption": {
+        "fontSize": "{typography.fontSize.caption}",
+        "fontWeight": "{typography.fontWeight.semibold}",
+        "lineHeight": "{typography.lineHeight.normal}",
+        "fontFamily": "{typography.fontFamily.sans}",
+        "color": "{colors.primary.blue-600}",
+        "description": "キャプション"
+      },
+      "mono": {
+        "fontSize": "{typography.fontSize.body}",
+        "fontWeight": "{typography.fontWeight.regular}",
+        "lineHeight": "{typography.lineHeight.normal}",
+        "fontFamily": "{typography.fontFamily.mono}",
+        "color": "{colors.primary.blue-600}",
+        "description": "ファイル名表示"
+      }
+    }
+  },
+  "spacing": {
+    "scale": {
+      "xs": {
+        "value": "4px",
+        "type": "spacing",
+        "description": "極小"
+      },
+      "sm": {
+        "value": "8px",
+        "type": "spacing",
+        "description": "小"
+      },
+      "md": {
+        "value": "16px",
+        "type": "spacing",
+        "description": "中"
+      },
+      "lg": {
+        "value": "24px",
+        "type": "spacing",
+        "description": "大"
+      },
+      "xl": {
+        "value": "32px",
+        "type": "spacing",
+        "description": "特大"
+      },
+      "2xl": {
+        "value": "48px",
+        "type": "spacing",
+        "description": "2倍特大"
+      },
+      "3xl": {
+        "value": "64px",
+        "type": "spacing",
+        "description": "3倍特大"
+      },
+      "4xl": {
+        "value": "96px",
+        "type": "spacing",
+        "description": "4倍特大"
+      }
+    },
+    "component": {
+      "card-padding": {
+        "value": "48px",
+        "type": "spacing",
+        "description": "カード内パディング"
+      },
+      "button-padding-x": {
+        "value": "80px",
+        "type": "spacing",
+        "description": "ボタン水平パディング"
+      },
+      "button-padding-y": {
+        "value": "32px",
+        "type": "spacing",
+        "description": "ボタン垂直パディング"
+      },
+      "navbar-height": {
+        "value": "64px",
+        "type": "spacing",
+        "description": "ナビゲーションバーの高さ"
+      },
+      "navbar-padding-mobile": {
+        "value": "16px",
+        "type": "spacing",
+        "description": "ナビゲーション水平パディング（モバイル）"
+      },
+      "navbar-padding-tablet": {
+        "value": "24px",
+        "type": "spacing",
+        "description": "ナビゲーション水平パディング（タブレット）"
+      },
+      "navbar-padding-desktop": {
+        "value": "32px",
+        "type": "spacing",
+        "description": "ナビゲーション水平パディング（デスクトップ）"
+      }
+    }
+  },
+  "borderRadius": {
+    "sm": {
+      "value": "8px",
+      "type": "borderRadius",
+      "description": "小"
+    },
+    "md": {
+      "value": "16px",
+      "type": "borderRadius",
+      "description": "中"
+    },
+    "lg": {
+      "value": "24px",
+      "type": "borderRadius",
+      "description": "大（ボタン、カード）"
+    },
+    "xl": {
+      "value": "32px",
+      "type": "borderRadius",
+      "description": "特大（メインカード、アイコン）"
+    },
+    "icon": {
+      "value": "12px",
+      "type": "borderRadius",
+      "description": "アイコンコンテナ"
+    }
+  },
+  "shadow": {
+    "sm": {
+      "value": {
+        "x": 0,
+        "y": 1,
+        "blur": 2,
+        "spread": 0,
+        "color": "rgba(0, 0, 0, 0.05)",
+        "type": "dropShadow"
+      },
+      "type": "shadow",
+      "description": "軽いシャドウ"
+    },
+    "md": {
+      "value": {
+        "x": 0,
+        "y": 4,
+        "blur": 6,
+        "spread": -1,
+        "color": "rgba(0, 0, 0, 0.1)",
+        "type": "dropShadow"
+      },
+      "type": "shadow",
+      "description": "中程度のシャドウ"
+    },
+    "lg": {
+      "value": {
+        "x": 0,
+        "y": 10,
+        "blur": 15,
+        "spread": -3,
+        "color": "rgba(0, 0, 0, 0.1)",
+        "type": "dropShadow"
+      },
+      "type": "shadow",
+      "description": "大きなシャドウ"
+    },
+    "xl": {
+      "value": {
+        "x": 0,
+        "y": 20,
+        "blur": 25,
+        "spread": -5,
+        "color": "rgba(0, 0, 0, 0.1)",
+        "type": "dropShadow"
+      },
+      "type": "shadow",
+      "description": "特大のシャドウ"
+    },
+    "2xl": {
+      "value": {
+        "x": 0,
+        "y": 25,
+        "blur": 50,
+        "spread": -12,
+        "color": "rgba(0, 0, 0, 0.25)",
+        "type": "dropShadow"
+      },
+      "type": "shadow",
+      "description": "最大のシャドウ"
+    },
+    "blue": {
+      "value": {
+        "x": 0,
+        "y": 25,
+        "blur": 50,
+        "spread": -12,
+        "color": "rgba(37, 99, 235, 0.25)",
+        "type": "dropShadow"
+      },
+      "type": "shadow",
+      "description": "青いシャドウ（ボタンホバー）"
+    }
+  },
+  "sizing": {
+    "icon": {
+      "small": {
+        "value": "32px",
+        "type": "sizing",
+        "description": "小さなアイコン"
+      },
+      "medium": {
+        "value": "48px",
+        "type": "sizing",
+        "description": "中アイコン"
+      },
+      "large": {
+        "value": "56px",
+        "type": "sizing",
+        "description": "大きなアイコン"
+      },
+      "xlarge": {
+        "value": "80px",
+        "type": "sizing",
+        "description": "特大アイコン"
+      }
+    },
+    "container": {
+      "logo": {
+        "value": "48px",
+        "type": "sizing",
+        "description": "ロゴアイコンコンテナ"
+      },
+      "hero-icon": {
+        "value": "96px",
+        "type": "sizing",
+        "description": "ヒーローアイコンコンテナ"
+      },
+      "max-width-content": {
+        "value": "1024px",
+        "type": "sizing",
+        "description": "コンテンツ最大幅"
+      },
+      "max-width-container": {
+        "value": "1280px",
+        "type": "sizing",
+        "description": "コンテナ最大幅"
+      }
+    }
+  },
+  "breakpoints": {
+    "mobile": {
+      "value": "375px",
+      "type": "sizing",
+      "description": "モバイル最小幅"
+    },
+    "tablet": {
+      "value": "768px",
+      "type": "sizing",
+      "description": "タブレット最小幅"
+    },
+    "desktop": {
+      "value": "1440px",
+      "type": "sizing",
+      "description": "デスクトップ最小幅"
+    },
+    "desktop-large": {
+      "value": "1920px",
+      "type": "sizing",
+      "description": "デスクトップ大画面"
+    }
+  },
+  "animation": {
+    "duration": {
+      "fast": {
+        "value": "150ms",
+        "type": "duration",
+        "description": "高速"
+      },
+      "normal": {
+        "value": "300ms",
+        "type": "duration",
+        "description": "標準"
+      },
+      "slow": {
+        "value": "500ms",
+        "type": "duration",
+        "description": "低速"
+      }
+    },
+    "easing": {
+      "ease-in-out": {
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "type": "cubicBezier",
+        "description": "標準イージング"
+      },
+      "ease-out": {
+        "value": "cubic-bezier(0, 0, 0.2, 1)",
+        "type": "cubicBezier",
+        "description": "イーズアウト"
+      },
+      "ease-in": {
+        "value": "cubic-bezier(0.4, 0, 1, 1)",
+        "type": "cubicBezier",
+        "description": "イーズイン"
+      }
+    },
+    "scale": {
+      "hover": {
+        "value": "1.1",
+        "type": "number",
+        "description": "ホバー時のスケール"
+      },
+      "active": {
+        "value": "0.95",
+        "type": "number",
+        "description": "クリック時のスケール"
+      },
+      "hover-small": {
+        "value": "1.05",
+        "type": "number",
+        "description": "小さなホバースケール"
+      }
+    }
+  }
+}
+

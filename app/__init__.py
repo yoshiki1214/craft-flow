@@ -34,12 +34,32 @@ def create_app(config_name: str = "default") -> Flask:
 
     # config.pyから設定を読み込む
     app.config.from_object(config[config_name])
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+    app.config["UPLOAD_FOLDER"] = os.path.join(app.instance_path, "uploads")
+    app.config["OUTPUT_FOLDER"] = os.path.join(app.instance_path, "outputs")
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB制限
 
     # instanceフォルダの作成
+
     try:
         os.makedirs(app.instance_path)
     except OSError:
         pass
+
+    try:
+        os.makedirs(app.config["UPLOAD_FOLDER"])
+    except OSError:
+        pass
+
+    try:
+        os.makedirs(app.config["OUTPUT_FOLDER"])
+    except OSError:
+        pass
+
+    # Blueprintの登録
+    from app.routes import upload
+
+    app.register_blueprint(upload.upload_bp)
 
     # 拡張機能の初期化
     db.init_app(app)
