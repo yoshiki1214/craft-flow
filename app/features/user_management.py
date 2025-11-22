@@ -27,9 +27,11 @@ def dashboard():
     Returns:
         ユーザー管理ダッシュボードのHTML
     """
+    from flask_wtf.csrf import generate_csrf
+
     # ログインユーザーの所属と同じ所属のユーザーのみを取得（ID番号の昇順で並び替え）
     users = User.query.filter_by(department=current_user.department).order_by(User.id.asc()).all()
-    return render_template("user_management/dashboard.html", users=users)
+    return render_template("user_management/dashboard.html", users=users, csrf_token=generate_csrf())
 
 
 @user_management_bp.route("/edit/<int:user_id>", methods=["GET", "POST"])

@@ -8,7 +8,6 @@ import logging
 from app import create_app
 import os
 
-
 # ログ設定: 標準出力に確実に出力されるようにする
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", stream=sys.stdout
