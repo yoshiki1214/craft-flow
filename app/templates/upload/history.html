@@ -18,6 +18,15 @@
     <!-- 履歴一覧カード -->
     <div class="bg-gradient-to-br from-white via-blue-50/30 to-cyan-50/30 shadow-2xl rounded-3xl p-10 mb-10 border-2 border-blue-100 backdrop-blur-sm">
         {% if history %}
+            <!-- ページ情報表示 -->
+            {% if total_items > 0 %}
+            <div class="mb-6 text-center">
+                <p class="text-lg text-gray-700 font-medium">
+                    全 {{ total_items }} 件中 {{ ((page - 1) * per_page) + 1 }} - {{ [page * per_page, total_items]|min }} 件を表示
+                </p>
+            </div>
+            {% endif %}
+            
             <div class="space-y-5">
                 {% for item in history %}
                     <div class="bg-white rounded-2xl p-6 border-2 border-blue-100 hover:border-blue-400 shadow-md hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.01] hover:-translate-y-1">
@@ -40,11 +49,12 @@
                                 </div>
                             </div>
                             
-                            <!-- ダウンロードボタン -->
-                            <div class="flex-shrink-0">
+                            <!-- アクションボタン -->
+                            <div class="flex-shrink-0 flex items-center gap-3">
+                                <!-- ダウンロードボタン -->
                                 <a 
                                     href="{{ url_for('upload.download', filename=item.filename) }}" 
-                                    class="group inline-flex items-center justify-center px-6 py-3 text-lg font-bold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-sky-600 rounded-xl shadow-lg hover:shadow-blue-500/50 hover:from-blue-700 hover:via-cyan-700 hover:to-sky-700 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 active:scale-95 overflow-hidden relative"
+                                    class="group inline-flex items-center justify-center px-5 py-2.5 text-base font-bold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-sky-600 rounded-xl shadow-lg hover:shadow-blue-500/50 hover:from-blue-700 hover:via-cyan-700 hover:to-sky-700 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 active:scale-95 overflow-hidden relative"
                                 >
                                     <!-- アニメーション背景 -->
                                     <span class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -skew-x-12 group-hover:translate-x-full"></span>
@@ -54,11 +64,85 @@
                                     </svg>
                                     <span class="relative z-10">ダウンロード</span>
                                 </a>
+                                
+                                <!-- 削除ボタン -->
+                                <form 
+                                    method="POST" 
+                                    action="{{ url_for('upload.delete', filename=item.filename) }}?page={{ page }}" 
+                                    class="inline"
+                                    x-data="{ confirmDelete() { return confirm('このファイルを削除してもよろしいですか？\\n\\n' + '{{ item.filename }}'); } }"
+                                    @submit="if (!confirmDelete()) { $event.preventDefault(); }"
+                                >
+                                    <button 
+                                        type="submit"
+                                        class="group inline-flex items-center justify-center px-5 py-2.5 text-base font-bold text-white bg-gradient-to-r from-red-500 via-red-600 to-red-700 rounded-xl shadow-lg hover:shadow-red-500/50 hover:from-red-600 hover:via-red-700 hover:to-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 active:scale-95 overflow-hidden relative"
+                                    >
+                                        <!-- アニメーション背景 -->
+                                        <span class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -skew-x-12 group-hover:translate-x-full"></span>
+                                        
+                                        <svg class="w-5 h-5 mr-2 relative z-10 transition-transform group-hover:rotate-12 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                        <span class="relative z-10">削除</span>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
                 {% endfor %}
             </div>
+            
+            <!-- ページネーション -->
+            {% if total_pages > 1 %}
+            <div class="mt-10 flex items-center justify-center gap-3">
+                <!-- 前へボタン -->
+                {% if page > 1 %}
+                    <a 
+                        href="{{ url_for('upload.history', page=page - 1) }}"
+                        class="inline-flex items-center justify-center px-6 py-3 text-base font-bold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-sky-600 rounded-xl shadow-lg hover:shadow-blue-500/50 hover:from-blue-700 hover:via-cyan-700 hover:to-sky-700 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 active:scale-95"
+                    >
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        前へ
+                    </a>
+                {% else %}
+                    <span class="inline-flex items-center justify-center px-6 py-3 text-base font-bold text-gray-400 bg-gray-200 rounded-xl cursor-not-allowed">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        前へ
+                    </span>
+                {% endif %}
+                
+                <!-- ページ番号表示 -->
+                <div class="flex items-center gap-2">
+                    <span class="px-6 py-3 text-lg font-bold text-gray-700">
+                        ページ {{ page }} / {{ total_pages }}
+                    </span>
+                </div>
+                
+                <!-- 次へボタン -->
+                {% if page < total_pages %}
+                    <a 
+                        href="{{ url_for('upload.history', page=page + 1) }}"
+                        class="inline-flex items-center justify-center px-6 py-3 text-base font-bold text-white bg-gradient-to-r from-blue-600 via-cyan-600 to-sky-600 rounded-xl shadow-lg hover:shadow-blue-500/50 hover:from-blue-700 hover:via-cyan-700 hover:to-sky-700 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 active:scale-95"
+                    >
+                        次へ
+                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </a>
+                {% else %}
+                    <span class="inline-flex items-center justify-center px-6 py-3 text-base font-bold text-gray-400 bg-gray-200 rounded-xl cursor-not-allowed">
+                        次へ
+                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </span>
+                {% endif %}
+            </div>
+            {% endif %}
         {% else %}
             <!-- 履歴がない場合 -->
             <div class="text-center py-16">

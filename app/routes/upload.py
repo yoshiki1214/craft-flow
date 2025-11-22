@@ -119,10 +119,36 @@ def index():
 
 @upload_bp.route('/history')
 def history():
-    """変換履歴一覧画面を表示"""
+    """変換履歴一覧画面を表示（ページネーション対応）"""
     try:
+        # ページネーション設定
+        per_page = 10  # 1ページあたりの表示件数
+        page = request.args.get('page', 1, type=int)
+        
+        # 全履歴を取得
         history_list = get_conversion_history()
-        return render_template('upload/history.html', history=history_list)
+        total_items = len(history_list)
+        total_pages = (total_items + per_page - 1) // per_page  # 切り上げ
+        
+        # ページ番号のバリデーション
+        if page < 1:
+            page = 1
+        elif page > total_pages and total_pages > 0:
+            page = total_pages
+        
+        # ページネーション処理
+        start_index = (page - 1) * per_page
+        end_index = start_index + per_page
+        paginated_history = history_list[start_index:end_index]
+        
+        return render_template(
+            'upload/history.html',
+            history=paginated_history,
+            page=page,
+            total_pages=total_pages,
+            total_items=total_items,
+            per_page=per_page
+        )
     except Exception as e:
         import traceback
         error_detail = traceback.format_exc()
@@ -130,6 +156,43 @@ def history():
         current_app.logger.error(f'{error_msg}\n{error_detail}')
         flash(error_msg, 'error')
         return redirect(url_for('upload.index'))
+
+
+@upload_bp.route('/delete/<filename>', methods=['POST'])
+def delete(filename):
+    """変換履歴ファイルを削除"""
+    try:
+        output_dir = current_app.config.get('OUTPUT_FOLDER', os.path.join(current_app.instance_path, 'outputs'))
+        filepath = os.path.join(output_dir, filename)
+        
+        # セキュリティチェック（ディレクトリトラバーサル対策）
+        if not os.path.abspath(filepath).startswith(os.path.abspath(output_dir)):
+            flash('不正なファイルパスです', 'error')
+            current_app.logger.error(f'不正なファイルパス: {filepath}')
+            return redirect(url_for('upload.history'))
+        
+        # ファイルの存在確認
+        if not os.path.exists(filepath):
+            flash(f'ファイルが見つかりません: {filename}', 'error')
+            current_app.logger.error(f'ファイルが見つかりません: {filepath}')
+            return redirect(url_for('upload.history'))
+        
+        # ファイル削除
+        os.remove(filepath)
+        current_app.logger.info(f'ファイルを削除しました: {filename}')
+        flash(f'ファイルを削除しました: {filename}', 'success')
+        
+        # 現在のページ番号を取得（削除後に同じページに戻る）
+        page = request.args.get('page', 1, type=int)
+        return redirect(url_for('upload.history', page=page))
+        
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        error_msg = f'ファイル削除エラー: {str(e)}'
+        current_app.logger.error(f'{error_msg}\n{error_detail}')
+        flash(error_msg, 'error')
+        return redirect(url_for('upload.history'))
 
 
 @upload_bp.route('/success')
