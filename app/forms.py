@@ -1,6 +1,28 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, DateField, SelectField, SubmitField
+from wtforms import StringField, IntegerField, DateField, SelectField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Email, NumberRange
+
+
+class ExperienceProgramForm(FlaskForm):
+    """体験プログラムフォーム"""
+    name = StringField('プログラム名', validators=[DataRequired(message='プログラム名を入力してください。')])
+    description = TextAreaField('説明', validators=[DataRequired(message='説明を入力してください。')])
+    price = IntegerField('価格', validators=[
+        DataRequired(message='価格を入力してください。'),
+        NumberRange(min=0, message='価格は0円以上で入力してください。')
+    ])
+    capacity = IntegerField('定員', validators=[
+        DataRequired(message='定員を入力してください。'),
+        NumberRange(min=1, message='定員は1名以上で入力してください。')
+    ])
+    submit = SubmitField('登録')
+
+    def __init__(self, *args, **kwargs):
+        super(ExperienceProgramForm, self).__init__(*args, **kwargs)
+        # フォームフィールドにTailwind CSSクラスを適用
+        for field in self._fields.values():
+            if field.type not in ['SubmitField', 'CSRFTokenField']:
+                field.render_kw = {'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}
 
 
 class ReservationForm(FlaskForm):

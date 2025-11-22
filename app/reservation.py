@@ -12,7 +12,6 @@ from sqlalchemy import func
 
 reservation_bp = Blueprint('reservation', __name__)
 
-
 @reservation_bp.route('/')
 def index():
     """体験プログラムの一覧を表示する"""
@@ -55,23 +54,15 @@ def create(program_id=None):
                 except (ValueError, TypeError) as e:
                     flash('日付の形式が正しくありません。', 'error')
         elif request.method == 'POST':
-            # デバッグ用: フォームデータを出力
-            print(f'[DEBUG] POSTデータ: {dict(request.form)}')
-            print(f'[DEBUG] URL program_id: {program_id}')
-            
             # POSTリクエストの場合、hiddenフィールドからprogram_idを取得してフォームに設定
             # 優先順位: URLパラメータ > hiddenフィールド
             post_program_id = program_id or request.form.get('program_id', type=int)
             if post_program_id:
                 form.program_id.data = post_program_id
-                print(f'[DEBUG] form.program_id.data を設定: {form.program_id.data}')
             
             # フォームのバリデーションを実行（1回だけ）
             try:
                 is_valid = form.validate_on_submit()
-                print(f'[DEBUG] バリデーション結果: {is_valid}')
-                if not is_valid:
-                    print(f'[DEBUG] バリデーションエラー: {form.errors}')
             except Exception as e:
                 print(f'[ERROR] バリデーション実行中にエラー: {str(e)}')
                 import traceback
@@ -134,8 +125,6 @@ def create(program_id=None):
         # バリデーションエラーがある場合、エラーメッセージを表示
         # validate_on_submit()がFalseを返した場合、form.errorsにエラーが含まれている
         if request.method == 'POST' and not is_valid and form.errors:
-            # デバッグ用: エラー情報をコンソールに出力
-            print(f'[DEBUG] バリデーションエラー: {form.errors}')
             for field_name, errors in form.errors.items():
                 try:
                     field = getattr(form, field_name, None)
@@ -148,7 +137,6 @@ def create(program_id=None):
                         flash(f'{field_label}: {error}', 'error')
                 except Exception as e:
                     # フィールドが取得できない場合でもエラーメッセージを表示
-                    print(f'[DEBUG] フィールドエラー処理中に例外: {str(e)}')
                     for error in errors:
                         flash(f'{field_name}: {error}', 'error')
         
@@ -198,77 +186,102 @@ def confirm():
     form = ReservationForm()
     form.program_id.choices = [(p.id, p.name) for p in ExperienceProgram.query.all()]
     
-    # セッションデータをフォームに設定
-    if request.method == 'GET':
-        form.program_id.data = reservation_data['program_id']
-        form.name.data = reservation_data['name']
-        form.email.data = reservation_data['email']
-        form.phone_number.data = reservation_data['phone_number']
-        form.reservation_date.data = datetime.fromisoformat(reservation_data['reservation_date']).date()
-        form.number_of_participants.data = reservation_data['number_of_participants']
-    elif request.method == 'POST':
-        # POSTリクエストの場合、フォームデータを処理
-        form.process(formdata=request.form)
-        # セッションデータを更新（編集された可能性があるため）
-        if form.validate():
-            reservation_data['program_id'] = form.program_id.data
-            reservation_data['name'] = form.name.data
-            reservation_data['email'] = form.email.data
-            reservation_data['phone_number'] = form.phone_number.data
-            reservation_data['reservation_date'] = form.reservation_date.data.isoformat()
-            reservation_data['number_of_participants'] = form.number_of_participants.data
-            session['reservation_data'] = reservation_data
+    # 日付オブジェクトを作成（テンプレート用）
+    reservation_date_obj = None
+    try:
+        if isinstance(reservation_data['reservation_date'], str):
+            reservation_date_obj = datetime.fromisoformat(reservation_data['reservation_date']).date()
+        else:
+            reservation_date_obj = reservation_data['reservation_date']
+    except (ValueError, KeyError):
+        pass
     
-    # 決定ボタンが押された場合
+    # 決定ボタンが押された場合（最初にチェック）
     if request.method == 'POST' and 'confirm' in request.form:
-        if form.validate_on_submit():
-            try:
-                # プログラムを再取得（変更された可能性があるため）
-                selected_program = db.session.get(ExperienceProgram, form.program_id.data)
-                if not selected_program:
-                    flash('指定された体験プログラムが見つかりません。', 'error')
-                    return render_template('reservations/confirm.html', form=form, program=program)
-                
-                # 定員チェック
-                existing_reservations = Reservation.query.filter_by(
-                    program_id=form.program_id.data,
-                    reservation_date=form.reservation_date.data
-                ).all()
-                
-                total_participants = sum(r.number_of_participants for r in existing_reservations)
-                if total_participants + form.number_of_participants.data > selected_program.capacity:
-                    flash(f'この日の予約が満席です。（残り: {selected_program.capacity - total_participants}名）', 'error')
-                    return render_template('reservations/confirm.html', form=form, program=selected_program)
-                
-                # 予約を作成
-                reservation = Reservation(
-                    program_id=form.program_id.data,
-                    name=form.name.data,
-                    email=form.email.data,
-                    phone_number=form.phone_number.data,
-                    reservation_date=form.reservation_date.data,
-                    number_of_participants=form.number_of_participants.data
-                )
-                
-                db.session.add(reservation)
-                db.session.commit()
-                
-                # セッションをクリア
-                session.pop('reservation_data', None)
-                
-                flash('予約が完了しました。', 'success')
-                return redirect(url_for('reservation.show', id=reservation.id))
-                
-            except Exception as e:
-                db.session.rollback()
-                import traceback
-                error_msg = str(e)
-                current_app.logger.error(f'予約作成エラー: {error_msg}')
-                current_app.logger.error(traceback.format_exc())
-                flash(f'予約の作成中にエラーが発生しました: {error_msg[:100]}', 'error')
+        # 確認画面ではセッションデータから直接予約を作成（既にバリデーション済み）
+        try:
+            # セッションデータから値を取得
+            program_id = reservation_data['program_id']
+            name = reservation_data['name']
+            email = reservation_data['email']
+            phone_number = reservation_data['phone_number']
+            reservation_date_str = reservation_data['reservation_date']
+            number_of_participants = reservation_data['number_of_participants']
+            
+            # 日付を変換
+            if isinstance(reservation_date_str, str):
+                reservation_date = datetime.fromisoformat(reservation_date_str).date()
+            else:
+                reservation_date = reservation_date_str
+            
+            # プログラムを再取得
+            selected_program = db.session.get(ExperienceProgram, program_id)
+            if not selected_program:
+                flash('指定された体験プログラムが見つかりません。', 'error')
+                return render_template('reservations/confirm.html', 
+                                     form=form, 
+                                     program=program,
+                                     reservation_data=reservation_data,
+                                     reservation_date_obj=reservation_date_obj)
+            
+            # 定員チェック
+            existing_reservations = Reservation.query.filter_by(
+                program_id=program_id,
+                reservation_date=reservation_date
+            ).all()
+            
+            total_participants = sum(r.number_of_participants for r in existing_reservations)
+            if total_participants + number_of_participants > selected_program.capacity:
+                flash(f'この日の予約が満席です。（残り: {selected_program.capacity - total_participants}名）', 'error')
+                return render_template('reservations/confirm.html', 
+                                     form=form, 
+                                     program=selected_program,
+                                     reservation_data=reservation_data,
+                                     reservation_date_obj=reservation_date_obj)
+            
+            # 予約を作成
+            reservation = Reservation(
+                program_id=program_id,
+                name=name,
+                email=email,
+                phone_number=phone_number,
+                reservation_date=reservation_date,
+                number_of_participants=number_of_participants
+            )
+            
+            db.session.add(reservation)
+            db.session.commit()
+            
+            # セッションをクリア
+            session.pop('reservation_data', None)
+            
+            flash('予約が完了しました。', 'success')
+            return redirect(url_for('reservation.index'))
+            
+        except Exception as e:
+            db.session.rollback()
+            import traceback
+            error_msg = str(e)
+            current_app.logger.error(f'予約作成エラー: {error_msg}')
+            current_app.logger.error(traceback.format_exc())
+            flash(f'予約の作成中にエラーが発生しました: {error_msg[:100]}', 'error')
+            # エラー時は確認画面を再表示
+            return render_template('reservations/confirm.html', 
+                                 form=form, 
+                                 program=program,
+                                 reservation_data=reservation_data,
+                                 reservation_date_obj=reservation_date_obj)
     
-    # バリデーションエラーがある場合
-    if request.method == 'POST' and form.errors:
+    # セッションデータをフォームに設定（表示用）
+    form.program_id.data = reservation_data['program_id']
+    form.name.data = reservation_data['name']
+    form.email.data = reservation_data['email']
+    form.phone_number.data = reservation_data['phone_number']
+    form.reservation_date.data = reservation_date_obj or datetime.fromisoformat(reservation_data['reservation_date']).date()
+    form.number_of_participants.data = reservation_data['number_of_participants']
+    
+    # バリデーションエラーがある場合（予約確定ボタン以外のPOSTリクエスト時のみ）
+    if request.method == 'POST' and 'confirm' not in request.form and form.errors:
         for field_name, errors in form.errors.items():
             try:
                 field = getattr(form, field_name, None)
@@ -282,7 +295,11 @@ def confirm():
                 for error in errors:
                     flash(f'{field_name}: {error}', 'error')
     
-    return render_template('reservations/confirm.html', form=form, program=program)
+    return render_template('reservations/confirm.html', 
+                         form=form, 
+                         program=program,
+                         reservation_data=reservation_data,
+                         reservation_date_obj=reservation_date_obj)
 
 
 @reservation_bp.route('/show/<int:id>')
@@ -405,6 +422,7 @@ def api_events():
             booked_participants = reservation_map.get((program.id, current_date), 0)
             remaining = program.capacity - booked_participants
             is_full = remaining <= 0
+            has_reservations = booked_participants > 0
             
             # プログラム名をカレンダー表示用に短縮
             display_name = program.name
@@ -418,12 +436,23 @@ def api_events():
             if not is_full:
                 event_url = url_for('reservation.create', program_id=program.id, _external=False) + f"?date={current_date.isoformat()}"
             
+            # 色の決定: 満席=赤、予約ありで余裕あり=緑、予約なし=青
+            if is_full:
+                bg_color = '#ef4444'  # 赤
+                border_color = '#ef4444'
+            elif has_reservations:
+                bg_color = '#22c55e'  # 緑（予約が入っていて余裕がある）
+                border_color = '#22c55e'
+            else:
+                bg_color = '#3b82f6'  # 青（予約が入っていない）
+                border_color = '#3b82f6'
+            
             events.append({
                 'title': f"{display_name}: {'受付終了' if is_full else f'残り{remaining}名'}",
                 'start': current_date.isoformat(),
                 'url': event_url,
-                'backgroundColor': '#ef4444' if is_full else '#3b82f6', # 満席なら赤、空きがあれば青
-                'borderColor': '#ef4444' if is_full else '#3b82f6',
+                'backgroundColor': bg_color,
+                'borderColor': border_color,
                 'classNames': ['cursor-pointer'] if not is_full else ['cursor-not-allowed'],
                 'extendedProps': {
                     'program_id': program.id,

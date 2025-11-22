@@ -44,6 +44,7 @@ def create_app(config_name: str = 'default') -> Flask:
     # 循環インポートを避けるため、関数内でインポートします
     from . import models
     from .reservation import reservation_bp
+    from .program import program_bp
     from . import commands
 
     # カスタムフィルターの登録
@@ -54,6 +55,7 @@ def create_app(config_name: str = 'default') -> Flask:
         return locale.format_string("%d", value, grouping=True)
 
     app.register_blueprint(reservation_bp)
+    app.register_blueprint(program_bp, url_prefix='/programs')
     commands.init_app(app)
 
     return app

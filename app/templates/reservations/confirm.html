@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}予約内容の確認 - Craft Flow{% endblock %}
+{% block title %}予約内容の確認 - 予約管理{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
@@ -59,9 +59,17 @@
     </div>
 
     <div class="flex space-x-4">
-        <form method="POST" action="{{ url_for('reservation.confirm') }}" class="flex-1">
+        <form method="POST" action="{{ url_for('reservation.confirm') }}" class="flex-1" id="confirm-form">
             {{ form.csrf_token }}
-            <button type="submit" name="confirm" value="true" class="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 transition-colors font-medium">
+            {# セッションデータをhiddenフィールドとして送信（フォームデータではなくセッションデータを使用） #}
+            <input type="hidden" name="program_id" value="{{ reservation_data.program_id }}">
+            <input type="hidden" name="name" value="{{ reservation_data.name }}">
+            <input type="hidden" name="email" value="{{ reservation_data.email }}">
+            <input type="hidden" name="phone_number" value="{{ reservation_data.phone_number }}">
+            <input type="hidden" name="reservation_date" value="{{ reservation_data.reservation_date }}">
+            <input type="hidden" name="number_of_participants" value="{{ reservation_data.number_of_participants }}">
+            <input type="hidden" name="confirm" value="true">
+            <button type="submit" class="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 transition-colors font-medium">
                 予約を確定する
             </button>
         </form>
