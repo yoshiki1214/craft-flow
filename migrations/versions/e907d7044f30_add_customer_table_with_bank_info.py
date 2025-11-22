@@ -1,7 +1,7 @@
 """Add Customer table with bank info
 
 Revision ID: e907d7044f30
-Revises: merge_heads
+Revises: 7fda82113420
 Create Date: 2025-11-22 15:17:35.567457
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'e907d7044f30'
-down_revision = 'merge_heads'
+down_revision = '7fda82113420'
 branch_labels = None
 depends_on = None
 
