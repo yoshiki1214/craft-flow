@@ -112,7 +112,7 @@ def index():
     last_filename = session.pop('last_output_filename', None)
     last_path = session.pop('last_output_path', None)
     
-    return render_template('upload/index.html', 
+    return render_template('bank_format/index.html', 
                          last_filename=last_filename,
                          last_path=last_path)
 
@@ -142,7 +142,7 @@ def history():
         paginated_history = history_list[start_index:end_index]
         
         return render_template(
-            'upload/history.html',
+            'bank_format/history.html',
             history=paginated_history,
             page=page,
             total_pages=total_pages,
@@ -155,7 +155,7 @@ def history():
         error_msg = f'履歴取得エラー: {str(e)}'
         current_app.logger.error(f'{error_msg}\n{error_detail}')
         flash(error_msg, 'error')
-        return redirect(url_for('upload.index'))
+        return redirect(url_for('bank_format.index'))
 
 
 @upload_bp.route('/delete/<filename>', methods=['POST'])
@@ -169,13 +169,13 @@ def delete(filename):
         if not os.path.abspath(filepath).startswith(os.path.abspath(output_dir)):
             flash('不正なファイルパスです', 'error')
             current_app.logger.error(f'不正なファイルパス: {filepath}')
-            return redirect(url_for('upload.history'))
+            return redirect(url_for('bank_format.history'))
         
         # ファイルの存在確認
         if not os.path.exists(filepath):
             flash(f'ファイルが見つかりません: {filename}', 'error')
             current_app.logger.error(f'ファイルが見つかりません: {filepath}')
-            return redirect(url_for('upload.history'))
+            return redirect(url_for('bank_format.history'))
         
         # ファイル削除
         os.remove(filepath)
@@ -184,7 +184,7 @@ def delete(filename):
         
         # 現在のページ番号を取得（削除後に同じページに戻る）
         page = request.args.get('page', 1, type=int)
-        return redirect(url_for('upload.history', page=page))
+        return redirect(url_for('bank_format.history', page=page))
         
     except Exception as e:
         import traceback
@@ -192,7 +192,7 @@ def delete(filename):
         error_msg = f'ファイル削除エラー: {str(e)}'
         current_app.logger.error(f'{error_msg}\n{error_detail}')
         flash(error_msg, 'error')
-        return redirect(url_for('upload.history'))
+        return redirect(url_for('bank_format.history'))
 
 
 @upload_bp.route('/success')
@@ -201,8 +201,8 @@ def success():
     filename = request.args.get('filename', '')
     if not filename:
         flash('ファイル名が指定されていません', 'error')
-        return redirect(url_for('upload.index'))
-    return render_template('upload/success.html', filename=filename)
+        return redirect(url_for('bank_format.index'))
+    return render_template('bank_format/success.html', filename=filename)
 
 
 @upload_bp.route('/download/<filename>')
@@ -216,13 +216,13 @@ def download(filename):
         if not os.path.exists(filepath):
             flash(f'ファイルが見つかりません: {filename}', 'error')
             current_app.logger.error(f'ファイルが見つかりません: {filepath}')
-            return redirect(url_for('upload.index'))
+            return redirect(url_for('bank_format.index'))
         
         # セキュリティチェック（ディレクトリトラバーサル対策）
         if not os.path.abspath(filepath).startswith(os.path.abspath(current_app.config['OUTPUT_FOLDER'])):
             flash('不正なファイルパスです', 'error')
             current_app.logger.error(f'不正なファイルパス: {filepath}')
-            return redirect(url_for('upload.index'))
+            return redirect(url_for('bank_format.index'))
         
         # エンコーディングの判定（ファイル名から推測）
         mimetype = 'text/plain; charset=shift_jis'
@@ -243,7 +243,7 @@ def download(filename):
         error_msg = f'ファイルダウンロードエラー: {str(e)}'
         current_app.logger.error(f'{error_msg}\n{error_detail}')
         flash(error_msg, 'error')
-        return redirect(url_for('upload.index'))
+        return redirect(url_for('bank_format.index'))
 
 
 @upload_bp.route('/convert', methods=['POST'])
@@ -277,7 +277,7 @@ def convert():
             if not os.path.exists(files_dir):
                 flash('Excelファイルをアップロードするか、app/filesディレクトリにExcelファイルを配置してください', 'error')
                 current_app.logger.error(f'filesディレクトリが存在しません: {files_dir}')
-                return redirect(url_for('upload.index'))
+                return redirect(url_for('bank_format.index'))
             
             # Excelファイルを検索
             excel_files = []
@@ -289,7 +289,7 @@ def convert():
             
             if not excel_files:
                 flash('Excelファイルをアップロードするか、app/filesディレクトリにExcelファイル（.xlsx, .xls）を配置してください', 'error')
-                return redirect(url_for('upload.index'))
+                return redirect(url_for('bank_format.index'))
             
             # 最初のExcelファイルを使用（複数ある場合は最初のもの）
             excel_filename = excel_files[0]
@@ -300,7 +300,7 @@ def convert():
         if not os.path.exists(excel_path):
             flash('Excelファイルが見つかりません', 'error')
             current_app.logger.error(f'Excelファイルが見つかりません: {excel_path}')
-            return redirect(url_for('upload.index'))
+            return redirect(url_for('bank_format.index'))
         
         # 依頼人情報を取得（オプション）
         requester_code = request.form.get('requester_code', '').strip()
@@ -330,7 +330,7 @@ def convert():
                     current_app.logger.info(f'一時ファイルを削除: {uploaded_file}')
                 except Exception as del_e:
                     current_app.logger.warning(f'一時ファイルの削除に失敗: {uploaded_file}, {str(del_e)}')
-            return redirect(url_for('upload.index'))
+            return redirect(url_for('bank_format.index'))
         except Exception as e:
             import traceback
             error_detail = traceback.format_exc()
@@ -344,7 +344,7 @@ def convert():
                     current_app.logger.info(f'一時ファイルを削除: {uploaded_file}')
                 except Exception as del_e:
                     current_app.logger.warning(f'一時ファイルの削除に失敗: {uploaded_file}, {str(del_e)}')
-            return redirect(url_for('upload.index'))
+            return redirect(url_for('bank_format.index'))
         
         # エンコーディングと改行コードの設定を取得（デフォルト: Shift-JIS, CRLF）
         encoding = request.form.get('encoding', 'shift_jis').lower()
@@ -381,7 +381,7 @@ def convert():
                     current_app.logger.warning(f'一時ファイルの削除に失敗: {uploaded_file}, {str(e)}')
             
             # トップページにリダイレクト（成功メッセージとダウンロードリンクを表示）
-            return redirect(url_for('upload.index'))
+            return redirect(url_for('bank_format.index'))
             
         except ZenginFormatError as e:
             error_msg = f'ファイル保存エラー: {str(e)}'
@@ -394,7 +394,7 @@ def convert():
                     current_app.logger.info(f'一時ファイルを削除: {uploaded_file}')
                 except Exception as del_e:
                     current_app.logger.warning(f'一時ファイルの削除に失敗: {uploaded_file}, {str(del_e)}')
-            return redirect(url_for('upload.index'))
+            return redirect(url_for('bank_format.index'))
         except Exception as e:
             import traceback
             error_detail = traceback.format_exc()
@@ -408,7 +408,7 @@ def convert():
                     current_app.logger.info(f'一時ファイルを削除: {uploaded_file}')
                 except Exception as del_e:
                     current_app.logger.warning(f'一時ファイルの削除に失敗: {uploaded_file}, {str(del_e)}')
-            return redirect(url_for('upload.index'))
+            return redirect(url_for('bank_format.index'))
         
     except Exception as e:
         import traceback
@@ -422,5 +422,5 @@ def convert():
                 current_app.logger.info(f'一時ファイルを削除: {uploaded_file}')
             except Exception as del_e:
                 current_app.logger.warning(f'一時ファイルの削除に失敗: {uploaded_file}, {str(del_e)}')
-        return redirect(url_for('upload.index'))
+        return redirect(url_for('bank_format.index'))
 

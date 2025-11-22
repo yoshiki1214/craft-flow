@@ -2,3 +2,19 @@
 .venv
 db.sqlite
 __pycache__/
+instance/
+uploads/
+*.pyc
+*.pyo
+*.pyd
+.Python
+migrations/versions/*.pyc
+
+# デバッグ用の一時ファイル
+*.txt
+!requirements.txt
+!README.md
+!TESTING.md
+!ACTION_GUIDE.md
+!TROUBLESHOOTING.md
+!QUICK_START.md
