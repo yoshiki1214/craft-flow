@@ -342,7 +342,13 @@ class SettlementGenerator:
 
         ws["C9"].border = Border(left=thin_border, right=thin_border, bottom=thin_border)
 
-        ws["F9"].border = Border(left=thin_border)
+        ws["E9"].border = Border(right=thin_border)
+
+        ws["E10"].border = Border(right=thin_border)
+
+        ws["E11"].border = Border(right=thin_border)
+
+        ws["E12"].border = Border(right=thin_border)
 
         ws["B10"].border = Border(right=thin_border)
 
@@ -366,9 +372,13 @@ class SettlementGenerator:
 
         ws["C27"].border = Border(left=thin_border, right=thin_border)
 
+        ws["E27"].border = Border(right=thin_border)
+
         ws["A31"].border = Border(top=thin_border, left=thin_border, right=thin_border)
 
         ws["C31"].border = Border(top=thin_border, left=thin_border, right=thin_border, bottom=thin_border)
+
+        ws["E31"].border = Border(right=thin_border)
 
         ws["A32"].border = Border(top=thin_border)
 

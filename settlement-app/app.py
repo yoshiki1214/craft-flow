@@ -120,9 +120,10 @@ def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
 
                     # 印刷位置（マージン）を設定（適度な余白を確保）
                     # E列が別ページになるのを防ぐため、左右マージンを少し小さく設定
+                    # 中央寄せのために左右のマージンを同じ値に設定
                     ws.page_margins = PageMargins(
-                        left=0.4,  # 左マージン（インチ）- 少し小さくして印刷可能幅を確保
-                        right=0.4,  # 右マージン（インチ）- 少し小さくして印刷可能幅を確保
+                        left=0.6,  # 左マージン（インチ）-
+                        right=0.4,  # 右マージン（インチ）-
                         top=0.5,  # 上マージン（インチ）
                         bottom=0.5,  # 下マージン（インチ）
                         header=0.3,  # ヘッダーマージン（インチ）
@@ -134,6 +135,8 @@ def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
                     ws.page_setup.paperSize = ws.PAPERSIZE_A4  # A4サイズ
                     ws.page_setup.fitToWidth = 1  # 横幅を1ページに収める
                     ws.page_setup.fitToHeight = 0  # 高さは無制限（自動調整）
+                    ws.page_setup.horizontalCentered = True  # 水平方向の中央寄せ
+                    ws.page_setup.verticalCentered = False  # 垂直方向は中央寄せしない
 
                     # セルの幅と高さを調整して1ページに収める（小さくしすぎない）
                     # A4縦向きの印刷可能幅: 約8.27インチ - 左右マージン(0.8インチ) = 7.47インチ
