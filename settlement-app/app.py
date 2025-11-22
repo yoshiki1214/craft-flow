@@ -157,10 +157,10 @@ def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
                     # A4縦向きの印刷可能幅（文字数）: 約102文字（マージン0.4インチを考慮）
                     # 6列分（A列からF列）を考慮して、より適切な幅に調整
                     # 小さくしすぎないように、最大90%まで縮小
-                    max_printable_width = 102
+                    max_printable_width = 100
                     if total_width > max_printable_width:
                         # スケールファクターを計算（最小0.5、最大0.9）
-                        scale_factor = min(0.9, max(0.5, max_printable_width / total_width))
+                        scale_factor = min(0.9, max(0.4, max_printable_width / total_width))
                         # 列幅を調整（A列からF列まで）
                         for col_idx in range(1, 7):  # A列(1)からF列(6)まで
                             col_letter = get_column_letter(col_idx)
