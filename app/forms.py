@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, DateField, SelectField, SubmitField, TextAreaField
-from wtforms.validators import DataRequired, Email, NumberRange
+from wtforms.validators import DataRequired, Email, NumberRange, ValidationError
+from datetime import date
 
 
 class ExperienceProgramForm(FlaskForm):
@@ -37,6 +38,11 @@ class ReservationForm(FlaskForm):
         NumberRange(min=1, message='1名様以上でご予約ください。')
     ])
     submit = SubmitField('予約を確定する')
+    
+    def validate_reservation_date(self, field):
+        """予約日が今日以降であることを確認"""
+        if field.data and field.data < date.today():
+            raise ValidationError('日程が過ぎているので予約の受付が出来ません。')
 
     def __init__(self, *args, **kwargs):
         super(ReservationForm, self).__init__(*args, **kwargs)

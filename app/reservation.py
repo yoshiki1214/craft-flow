@@ -71,19 +71,25 @@ def create(program_id=None):
         
         if is_valid:
             try:
+                # 予約日が今日以降であることを確認
+                if form.reservation_date.data and form.reservation_date.data < date.today():
+                    flash('日程が過ぎているので予約の受付が出来ません。', 'info')
+                    form.program_id.choices = [(p.id, p.name) for p in ExperienceProgram.query.all()]
+                    return render_template('reservations/create.html', form=form, program=program, today_date=today_date)
+                
                 # フォームから送信されたprogram_idでプログラムを再取得
                 # hiddenフィールドからの値も考慮する
                 selected_program_id = form.program_id.data or request.form.get('program_id', type=int) or program_id
                 if not selected_program_id:
                     flash('プログラムを選択してください。', 'error')
                     form.program_id.choices = [(p.id, p.name) for p in ExperienceProgram.query.all()]
-                    return render_template('reservations/create.html', form=form, program=program)
+                    return render_template('reservations/create.html', form=form, program=program, today_date=today_date)
                 
                 selected_program = db.session.get(ExperienceProgram, selected_program_id)
                 if not selected_program:
                     flash('指定された体験プログラムが見つかりません。', 'error')
                     form.program_id.choices = [(p.id, p.name) for p in ExperienceProgram.query.all()]
-                    return render_template('reservations/create.html', form=form, program=program)
+                    return render_template('reservations/create.html', form=form, program=program, today_date=today_date)
                 # 定員チェック
                 existing_reservations = Reservation.query.filter_by(
                     program_id=selected_program_id,
@@ -93,7 +99,7 @@ def create(program_id=None):
                 total_participants = sum(r.number_of_participants for r in existing_reservations)
                 if total_participants + form.number_of_participants.data > selected_program.capacity:
                     flash(f'この日の予約が満席です。（残り: {selected_program.capacity - total_participants}名）', 'error')
-                    return render_template('reservations/create.html', form=form, program=program)
+                    return render_template('reservations/create.html', form=form, program=program, today_date=today_date)
                 
                 # 確認画面にリダイレクト（セッションにデータを保存）
                 session['reservation_data'] = {
@@ -143,7 +149,7 @@ def create(program_id=None):
         # フォームの選択肢を再設定（エラー時にも必要）
         form.program_id.choices = [(p.id, p.name) for p in ExperienceProgram.query.all()]
         
-        return render_template('reservations/create.html', form=form, program=program)
+        return render_template('reservations/create.html', form=form, program=program, today_date=today_date)
     
     except Exception as e:
         # 予期しないエラーをキャッチ
@@ -160,7 +166,8 @@ def create(program_id=None):
             form = ReservationForm()
             form.program_id.choices = [(p.id, p.name) for p in ExperienceProgram.query.all()]
             program = db.session.get(ExperienceProgram, program_id) if program_id else None
-            return render_template('reservations/create.html', form=form, program=program)
+            today_date = date.today().isoformat()
+            return render_template('reservations/create.html', form=form, program=program, today_date=today_date)
         except:
             # フォームも作成できない場合は、エラーページを返す
             abort(500)

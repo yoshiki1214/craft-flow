@@ -68,10 +68,11 @@
 
             <div class="mb-6">
                 {{ form.reservation_date.label(class="block text-sm font-medium text-gray-700 mb-2") }}
-                {{ form.reservation_date() }}
+                {{ form.reservation_date(min=today_date) }}
                 {% if form.reservation_date.errors %}
                 <p class="mt-1 text-sm text-red-600">{{ form.reservation_date.errors[0] }}</p>
                 {% endif %}
+                <p class="mt-1 text-sm text-gray-500">今日以降の日付を選択してください。</p>
             </div>
 
             <div class="mb-6">
