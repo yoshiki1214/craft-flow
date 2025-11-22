@@ -3,6 +3,7 @@
 db.sqlite
 __pycache__/
 instance/
+*.db
 uploads/
 *.pyc
 *.pyo
