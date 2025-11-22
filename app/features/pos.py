@@ -10,12 +10,14 @@ import logging
 from io import BytesIO
 from typing import Dict, List
 from flask import Blueprint, flash, redirect, render_template, request, url_for, send_file
+from flask_login import login_required
 from werkzeug.utils import secure_filename
 import pandas as pd
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from app import db
 from app.models.pos_sales import PosSales
 from app.models.daily_sales import DailySales
+from app.utils.decorators import shinko_center_required
 from app.utils.pdf_processor import (
     extract_metadata_from_pdf,
     extract_table_data_from_pdf,
@@ -23,6 +25,14 @@ from app.utils.pdf_processor import (
 )
 
 pos_bp = Blueprint("pos", __name__, url_prefix="/pos")
+
+
+@pos_bp.before_request
+@login_required
+@shinko_center_required
+def require_shinko_center():
+    """POS機能のすべてのルートで振興センターの権限を要求する"""
+    pass
 
 
 def allowed_file(filename: str) -> bool:
@@ -225,6 +235,8 @@ def dashboard():
     Returns:
         ダッシュボードページのHTML
     """
+    from flask_wtf.csrf import generate_csrf
+
     # 統計情報を取得
     total_records = PosSales.query.count()
 
@@ -261,6 +273,7 @@ def dashboard():
         "pos/dashboard.html",
         total_records=total_records,
         date_pos_list=date_pos_list,
+        csrf_token=generate_csrf(),
     )
 
 
@@ -272,8 +285,10 @@ def upload():
     GET: アップロードフォームを表示
     POST: アップロードされたPDFファイルを処理してDBに保存
     """
+    from flask_wtf.csrf import generate_csrf
+
     if request.method == "GET":
-        return render_template("pos/upload.html")
+        return render_template("pos/upload.html", csrf_token=generate_csrf())
 
     # POSTリクエストの処理
     if "files" not in request.files:

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}ユーザー編集 - Craft Flow{% endblock %}
+
+{% block content %}
+<div class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                ユーザー情報の編集
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                {{ user.username }}さんの情報を編集します
+            </p>
+        </div>
+        <form class="mt-8 space-y-6" method="POST" action="{{ url_for('user_management.edit_user', user_id=user.id) }}" novalidate>
+            {{ form.csrf_token }}
+            <div class="space-y-4">
+                <div data-field-group="username">
+                    <label for="{{ form.username.id }}" class="block text-sm font-medium {% if form.username.errors %}text-red-700{% else %}text-gray-700{% endif %}">ユーザー名 <span class="text-red-600">*</span></label>
+                    {% if form.username.errors %}
+                    {{ form.username(class="mt-1 block w-full rounded-md border-red-500 shadow-sm py-2.5 px-3 focus:border-red-500 focus:ring-red-500 sm:text-sm", style="border: 1px solid #dc2626 !important;", **{"data-field": "username"}) }}
+                    {% else %}
+                    {{ form.username(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2.5 px-3 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm", **{"data-field": "username"}) }}
+                    {% endif %}
+                    {% if form.username.errors %}
+                    <p class="mt-1 text-sm text-red-600 font-medium" data-field="username">{{ form.username.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <div data-field-group="email">
+                    <label for="{{ form.email.id }}" class="block text-sm font-medium {% if form.email.errors %}text-red-700{% else %}text-gray-700{% endif %}">メールアドレス <span class="text-red-600">*</span></label>
+                    {% if form.email.errors %}
+                    {{ form.email(class="mt-1 block w-full rounded-md border-red-500 shadow-sm py-2.5 px-3 focus:border-red-500 focus:ring-red-500 sm:text-sm", style="border: 1px solid #dc2626 !important;", **{"data-field": "email"}) }}
+                    {% else %}
+                    {{ form.email(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2.5 px-3 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm", **{"data-field": "email"}) }}
+                    {% endif %}
+                    {% if form.email.errors %}
+                    <p class="mt-1 text-sm text-red-600 font-medium" data-field="email">{{ form.email.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <div data-field-group="department">
+                    <label for="{{ form.department.id }}" class="block text-sm font-medium {% if form.department.errors %}text-red-700{% else %}text-gray-700{% endif %}">所属 <span class="text-red-600">*</span></label>
+                    {% if form.department.errors %}
+                    {{ form.department(class="mt-1 block w-full rounded-md border-red-500 shadow-sm py-2.5 px-3 focus:border-red-500 focus:ring-red-500 sm:text-sm", style="border: 1px solid #dc2626 !important;", **{"data-field": "department"}) }}
+                    {% else %}
+                    {{ form.department(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2.5 px-3 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm", **{"data-field": "department"}) }}
+                    {% endif %}
+                    {% if form.department.errors %}
+                    <p class="mt-1 text-sm text-red-600 font-medium" data-field="department">{{ form.department.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <div data-field-group="password">
+                    <label for="{{ form.password.id }}" class="block text-sm font-medium {% if form.password.errors %}text-red-700{% else %}text-gray-700{% endif %}">パスワード</label>
+                    {% if form.password.errors %}
+                    {{ form.password(class="mt-1 block w-full rounded-md border-red-500 shadow-sm py-2.5 px-3 focus:border-red-500 focus:ring-red-500 sm:text-sm", style="border: 1px solid #dc2626 !important;", **{"data-field": "password"}) }}
+                    {% else %}
+                    {{ form.password(class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2.5 px-3 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm", **{"data-field": "password"}) }}
+                    {% endif %}
+                    {% if form.password.errors %}
+                    <p class="mt-1 text-sm text-red-600 font-medium" data-field="password">{{ form.password.errors[0] }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">パスワードを変更しない場合は空欄のままにしてください。</p>
+                </div>
+            </div>
+
+            <div>
+                {{ form.submit }}
+            </div>
+
+            <div class="text-center">
+                <a href="{{ url_for('user_management.dashboard') }}" class="text-sm text-indigo-600 hover:text-indigo-800">
+                    ユーザー管理画面に戻る
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // エラーメッセージがある場合、入力欄とラベルを赤くする
+        const errorMessages = document.querySelectorAll('p[data-field]');
+        errorMessages.forEach(function (errorMsg) {
+            const fieldName = errorMsg.getAttribute('data-field');
+            if (!fieldName) return;
+
+            const fieldGroup = errorMsg.closest('div[data-field-group="' + fieldName + '"]');
+            if (fieldGroup) {
+                const input = fieldGroup.querySelector('input[data-field="' + fieldName + '"], select[data-field="' + fieldName + '"]');
+                if (input) {
+                    input.classList.remove('border-gray-300', 'focus:border-indigo-500', 'focus:ring-indigo-500');
+                    input.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                    input.style.setProperty('border', '1px solid #dc2626', 'important');
+
+                    const label = fieldGroup.querySelector('label');
+                    if (label) {
+                        label.classList.remove('text-gray-700');
+                        label.classList.add('text-red-700');
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
