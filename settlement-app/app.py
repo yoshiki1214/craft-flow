@@ -80,8 +80,12 @@ def allowed_file(filename):
 
 def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
     """
-    ExcelファイルをPDFに変換する内部関数（openpyxl + reportlab使用）
-    Excelのレイアウト、フォント、色、罫線などを可能な限り再現
+    ExcelファイルをPDFに変換する内部関数（LibreOffice使用）
+    LibreOfficeのコマンドラインツールを使用してExcelをPDFに変換
+    Excelのレイアウトや書式を維持したままPDFに変換できます
+    各シートが1ページとして出力されます
+    縦向きA4で横幅を1ページに収める設定を適用します
+    印刷範囲はA1セルからE39セルまでに限定されます
 
     Args:
         excel_path: Excelファイルのパス
@@ -91,404 +95,205 @@ def _convert_excel_to_pdf(excel_path: str) -> tuple[str | None, str | None]:
         成功した場合は (pdf_path, None)、失敗した場合は (None, error_message)
     """
     try:
+        import subprocess
+        import shutil
         from openpyxl import load_workbook
-        from openpyxl.utils import get_column_letter
-        from reportlab.lib.pagesizes import A4
-        from reportlab.lib.units import mm
-        from reportlab.lib import colors
-        from reportlab.platypus import (
-            Table,
-            TableStyle,
-            SimpleDocTemplate,
-            PageBreak,
-        )
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-
-        # 日本語フォントを登録（macOSの場合）
-        japanese_font_name = None
-        japanese_font_bold_name = None
-        try:
-            # macOSのシステムフォントを試す（優先順位順）
-            font_paths = [
-                "/System/Library/Fonts/AppleSDGothicNeo.ttc",  # macOS標準の日本語フォント
-                "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
-                "/System/Library/Fonts/Supplemental/NotoSansGothic-Regular.ttf",
-                "/System/Library/Fonts/Supplemental/ヒラギノ角ゴシック W3.ttc",
-                "/System/Library/Fonts/Supplemental/ヒラギノ角ゴシック W6.ttc",
-                "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
-                "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc",
-                "/Library/Fonts/NotoSansCJK-Regular.ttc",
-            ]
-            for font_path in font_paths:
-                if os.path.exists(font_path):
-                    try:
-                        # TTCファイルの場合は、フォントインデックスを指定する必要がある場合がある
-                        pdfmetrics.registerFont(TTFont("JapaneseFont", font_path))
-                        pdfmetrics.registerFont(TTFont("JapaneseFont-Bold", font_path))
-                        japanese_font_name = "JapaneseFont"
-                        japanese_font_bold_name = "JapaneseFont-Bold"
-                        print(f"日本語フォントを登録しました: {font_path}")
-                        break
-                    except Exception as e:
-                        print(f"フォント登録エラー ({font_path}): {str(e)}")
-                        continue
-            if not japanese_font_name:
-                # フォントが見つからない場合は、デフォルトフォントを使用
-                # reportlabのデフォルトフォントは日本語をサポートしないため、
-                # 警告を出すが処理は続行
-                print("警告: 日本語フォントが見つかりません。日本語が正しく表示されない可能性があります。")
-        except Exception as e:
-            print(f"フォント登録エラー: {str(e)}")
 
         # Excelファイルが存在するか確認
         if not os.path.exists(excel_path):
             return None, f"Excelファイルが見つかりません: {excel_path}"
 
-        # PDFファイルのパスを生成（拡張子を.pdfに変更）
-        pdf_path = os.path.splitext(excel_path)[0] + ".pdf"
+        # 印刷範囲とページ設定を自動設定するため、一時的にExcelファイルを読み込む
+        temp_excel_path = None
+        try:
+            wb = load_workbook(excel_path)
+            for sheet_name in wb.sheetnames:
+                ws = wb[sheet_name]
+                # 使用されている範囲を取得
+                if ws.max_row > 0 and ws.max_column > 0:
+                    # 印刷範囲を設定（F39セルまで）
+                    from openpyxl.utils import get_column_letter
+                    from openpyxl.worksheet.page import PageMargins
 
-        # Excelファイルを読み込む（data_only=Trueで数式の計算結果を取得）
-        wb = load_workbook(excel_path, data_only=True)
+                    print_area = "$A$1:$F$39"
+                    ws.print_area = print_area
 
-        # PDFドキュメントを作成（A4横または縦）
-        # 左マージンを増やしてテーブルが左に寄りすぎないようにする
-        doc = SimpleDocTemplate(
-            pdf_path,
-            pagesize=A4,
-            rightMargin=15 * mm,
-            leftMargin=25 * mm,  # 左マージンを15mmから25mmに増やす
-            topMargin=15 * mm,
-            bottomMargin=15 * mm,
-        )
+                    # 印刷位置（マージン）を設定（適度な余白を確保）
+                    # E列が別ページになるのを防ぐため、左右マージンを少し小さく設定
+                    ws.page_margins = PageMargins(
+                        left=0.4,  # 左マージン（インチ）- 少し小さくして印刷可能幅を確保
+                        right=0.4,  # 右マージン（インチ）- 少し小さくして印刷可能幅を確保
+                        top=0.5,  # 上マージン（インチ）
+                        bottom=0.5,  # 下マージン（インチ）
+                        header=0.3,  # ヘッダーマージン（インチ）
+                        footer=0.3,  # フッターマージン（インチ）
+                    )
 
-        story = []
+                    # ページ設定を調整（縦向きA4、横幅を1ページに収める）
+                    ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT  # 縦向き
+                    ws.page_setup.paperSize = ws.PAPERSIZE_A4  # A4サイズ
+                    ws.page_setup.fitToWidth = 1  # 横幅を1ページに収める
+                    ws.page_setup.fitToHeight = 0  # 高さは無制限（自動調整）
 
-        # 各シートを処理
-        for sheet_idx, sheet_name in enumerate(wb.sheetnames):
-            ws = wb[sheet_name]
+                    # セルの幅と高さを調整して1ページに収める（小さくしすぎない）
+                    # A4縦向きの印刷可能幅: 約8.27インチ - 左右マージン(0.8インチ) = 7.47インチ
+                    # Excelの列幅は文字数単位（標準フォント11ptで約7ピクセル/文字）
+                    # 1インチ = 96ピクセル、印刷可能幅 ≈ 7.47 * 96 / 7 ≈ 102文字分
+                    # ただし、小さくしすぎないように90%程度に調整
 
-            # シートの使用範囲を取得
-            if ws.max_row == 0 or ws.max_column == 0:
-                continue
-
-            # マージされたセルの情報を取得
-            merged_cells = list(ws.merged_cells.ranges)
-
-            # データを読み込む（セルの書式、フォント、色などを保持）
-            data = []
-            row_heights = []
-            max_cols = 0  # 実際に使用されている最大列数を追跡
-            excel_row_to_data_row = {}  # Excelの行番号とデータの行インデックスの対応
-
-            for row_idx in range(1, min(ws.max_row + 1, 100)):  # 最大100行まで
-                row_data = []
-                row_height = None
-
-                for col_idx in range(1, min(ws.max_column + 1, 15)):  # 最大15列まで
-                    cell = ws.cell(row=row_idx, column=col_idx)
-                    value = cell.value
-
-                    # 行の高さを取得
-                    if row_height is None:
-                        row_dimension = ws.row_dimensions.get(row_idx)
-                        if row_dimension and row_dimension.height:
-                            row_height = row_dimension.height * 0.75  # Excelのポイントをmmに変換
+                    # 現在の列幅の合計を計算（A列からF列まで）
+                    total_width = 0
+                    for col_idx in range(1, 7):  # A列(1)からF列(6)まで
+                        col_letter = get_column_letter(col_idx)
+                        col_dim = ws.column_dimensions.get(col_letter)
+                        if col_dim and col_dim.width:
+                            total_width += col_dim.width
                         else:
-                            row_height = 15  # デフォルト高さ
+                            total_width += 8.43  # デフォルト列幅
 
-                    # 値の処理
-                    cell_value = ""
-                    if value is None:
-                        cell_value = ""
-                    elif isinstance(value, datetime):
-                        cell_value = value.strftime("%Y年%m月%d日")
-                    elif isinstance(value, (int, float)):
-                        # 数値のフォーマットを適用
-                        if cell.number_format:
-                            fmt = str(cell.number_format)
-                            if "%" in fmt:
-                                cell_value = f"{value:.2f}%"
-                            elif "¥" in fmt or "yen" in fmt.lower() or "currency" in fmt.lower():
-                                cell_value = f"¥{value:,.0f}"
-                            elif "0" in fmt and "," in fmt:
-                                cell_value = f"{value:,.0f}"
-                            elif "." in fmt:
-                                cell_value = f"{value:.2f}"
+                    # A4縦向きの印刷可能幅（文字数）: 約102文字（マージン0.4インチを考慮）
+                    # 6列分（A列からF列）を考慮して、より適切な幅に調整
+                    # 小さくしすぎないように、最大90%まで縮小
+                    max_printable_width = 102
+                    if total_width > max_printable_width:
+                        # スケールファクターを計算（最小0.5、最大0.9）
+                        scale_factor = min(0.9, max(0.5, max_printable_width / total_width))
+                        # 列幅を調整（A列からF列まで）
+                        for col_idx in range(1, 7):  # A列(1)からF列(6)まで
+                            col_letter = get_column_letter(col_idx)
+                            col_dim = ws.column_dimensions[col_letter]
+                            if col_dim.width:
+                                col_dim.width = col_dim.width * scale_factor
                             else:
-                                cell_value = f"{value:,.0f}" if isinstance(value, float) else str(int(value))
+                                col_dim.width = 8.43 * scale_factor
+
+                    # 行の高さも調整（必要に応じて）
+                    # A4縦向きの印刷可能高さ: 約11.69インチ - 上下マージン(1.0インチ) = 10.69インチ
+                    # 1ポイント = 1/72インチ、印刷可能高さ ≈ 10.69 * 72 ≈ 770ポイント
+                    # 小さくしすぎないように、最大90%まで縮小
+
+                    # 現在の行の高さの合計を計算（1行目から39行目まで）
+                    total_height = 0
+                    for row_idx in range(1, 40):  # 1行目から39行目まで
+                        row_dim = ws.row_dimensions.get(row_idx)
+                        if row_dim and row_dim.height:
+                            total_height += row_dim.height
                         else:
-                            cell_value = f"{value:,.0f}" if isinstance(value, float) else str(int(value))
-                    else:
-                        cell_value = str(value)
+                            total_height += 15  # デフォルト行の高さ（ポイント）
 
-                    row_data.append(cell_value)
+                    # A4縦向きの印刷可能高さ（ポイント）: 約770ポイント
+                    max_printable_height = 770
+                    if total_height > max_printable_height:
+                        # スケールファクターを計算（最小0.5、最大0.9）
+                        height_scale_factor = min(0.9, max(0.5, max_printable_height / total_height))
+                        # 行の高さを調整（1行目から39行目まで）
+                        for row_idx in range(1, 40):  # 1行目から39行目まで
+                            row_dim = ws.row_dimensions[row_idx]
+                            if row_dim.height:
+                                row_dim.height = row_dim.height * height_scale_factor
+                            else:
+                                row_dim.height = 15 * height_scale_factor
+            # 一時ファイルとして保存
+            temp_excel_path = excel_path.replace(".xlsx", "_temp_pdf.xlsx")
+            wb.save(temp_excel_path)
+            wb.close()
+            excel_file_to_convert = temp_excel_path
+        except Exception as e:
+            print(f"印刷範囲の設定中にエラーが発生しました: {str(e)}")
+            # エラーが発生した場合は元のファイルを使用
+            excel_file_to_convert = excel_path
 
-                # 空行でない場合のみ追加
-                if any(str(v).strip() for v in row_data):
-                    data.append(row_data)
-                    row_heights.append(row_height)
-                    max_cols = max(max_cols, len(row_data))
-                    # Excelの行番号とデータの行インデックスの対応を記録
-                    excel_row_to_data_row[row_idx] = len(data) - 1
+        # LibreOfficeがインストールされているか確認
+        libreoffice_path = shutil.which("libreoffice")
+        if not libreoffice_path:
+            # macOSの場合、一般的なパスを確認
+            possible_paths = [
+                "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+                "/usr/local/bin/libreoffice",
+                "/opt/homebrew/bin/libreoffice",
+            ]
+            libreoffice_path = None
+            for path in possible_paths:
+                if os.path.exists(path):
+                    libreoffice_path = path
+                    break
 
-            if data:
-                # 列幅を取得（実際に使用されている列数に基づく）
-                col_widths = []
-                for col_idx in range(1, max_cols + 1):
-                    col_letter = get_column_letter(col_idx)
-                    # Excelの列幅を取得（デフォルトは約8.43文字分）
-                    column_dimension = ws.column_dimensions.get(col_letter)
-                    if column_dimension and column_dimension.width:
-                        # Excelの列幅（文字数）をmmに変換
-                        # Excelの列幅は標準フォントサイズ11ptでの文字数
-                        # 1文字 ≈ 7.5mm（11ptフォントの場合）
-                        width_mm = column_dimension.width * 7.5
-                    else:
-                        width_mm = 8.43 * 7.5  # デフォルト幅（約63mm）
-                    col_widths.append(width_mm)
+            if not libreoffice_path:
+                return (
+                    None,
+                    "LibreOfficeがインストールされていません。"
+                    "macOSの場合: brew install --cask libreoffice でインストールしてください。",
+                )
 
-                # 列幅を調整（ページ幅に収まるように）
-                page_width = A4[0] - 30 * mm  # 左右マージンを考慮
-                total_width = sum(col_widths) if col_widths else max_cols * 50 * mm
-                if total_width > page_width and total_width > 0:
-                    scale_factor = page_width / total_width
-                    col_widths = [w * scale_factor for w in col_widths]
+        # PDFファイルのパスを生成
+        pdf_path = os.path.splitext(excel_path)[0] + ".pdf"
+        output_dir = os.path.dirname(excel_path)
 
-                # テーブルを作成（列幅の数とデータの列数を一致させる）
-                # テーブルを作成（列幅の数とデータの列数を一致させる）
-                if col_widths and len(col_widths) == max_cols:
-                    table = Table(data, colWidths=col_widths)
+        # LibreOfficeコマンドでPDFに変換
+        # --headless: GUIなしで実行
+        # --convert-to pdf: PDF形式に変換（各シートが1ページとして出力される）
+        # --outdir: 出力ディレクトリを指定
+        # calc_pdf_Export: Calc（Excel）用のPDFエクスポートフィルターを使用
+        command = [
+            libreoffice_path,
+            "--headless",
+            "--convert-to",
+            "pdf:calc_pdf_Export",
+            "--outdir",
+            output_dir,
+            excel_file_to_convert,
+        ]
+
+        try:
+            # コマンドを実行
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=60,  # 60秒のタイムアウト
+            )
+
+            # 一時ファイルを削除
+            if temp_excel_path and os.path.exists(temp_excel_path):
+                try:
+                    os.remove(temp_excel_path)
+                except Exception:
+                    pass
+
+            if result.returncode == 0:
+                # PDFファイルが生成されたか確認
+                # 一時ファイルを使用した場合、PDFファイル名も調整が必要
+                if temp_excel_path:
+                    temp_pdf_path = os.path.splitext(temp_excel_path)[0] + ".pdf"
+                    if os.path.exists(temp_pdf_path):
+                        # 元のファイル名にリネーム
+                        if os.path.exists(pdf_path):
+                            os.remove(pdf_path)
+                        os.rename(temp_pdf_path, pdf_path)
+
+                if os.path.exists(pdf_path):
+                    print(f"PDFファイルを生成しました: {pdf_path}")
+                    return pdf_path, None
                 else:
-                    table = Table(data)
+                    # LibreOfficeは元のファイル名を維持するため、パスを確認
+                    # ファイル名にスペースが含まれている場合の処理
+                    base_name = os.path.splitext(os.path.basename(excel_path))[0]
+                    possible_pdf_path = os.path.join(output_dir, f"{base_name}.pdf")
+                    if os.path.exists(possible_pdf_path):
+                        return possible_pdf_path, None
+                    return None, "PDFファイルが生成されませんでした"
+            else:
+                error_msg = f"LibreOffice変換エラー: {result.stderr}"
+                print(error_msg)
+                return None, error_msg
 
-                # テーブルスタイルを構築（Excelの書式を再現）
-                table_style = []
+        except subprocess.TimeoutExpired:
+            return None, "PDF変換がタイムアウトしました（60秒以上かかりました）"
+        except Exception as e:
+            error_msg = f"PDF変換中にエラーが発生しました: {str(e)}"
+            print(error_msg)
+            return None, error_msg
 
-                # マージされたセルを処理
-                # まず、マージ範囲内の左上以外のセルの値を空にする
-                for merged_range in merged_cells:
-                    min_col, min_row, max_col, max_row = merged_range.bounds
-                    # Excelの行番号からデータの行インデックスに変換
-                    data_row_start = excel_row_to_data_row.get(min_row)
-                    data_row_end = excel_row_to_data_row.get(max_row)
-
-                    if data_row_start is not None and data_row_end is not None:
-                        # マージ範囲内のセルを処理
-                        for excel_row in range(min_row, max_row + 1):
-                            data_row = excel_row_to_data_row.get(excel_row)
-                            if data_row is not None and data_row < len(data):
-                                for excel_col in range(min_col, max_col + 1):
-                                    data_col = excel_col - 1  # Excelは1ベース、データは0ベース
-                                    # 左上のセルでない場合は空にする
-                                    if not (excel_row == min_row and excel_col == min_col):
-                                        if data_col < len(data[data_row]):
-                                            data[data_row][data_col] = ""
-
-                # マージされたセルをSPANコマンドで結合
-                for merged_range in merged_cells:
-                    min_col, min_row, max_col, max_row = merged_range.bounds
-                    # Excelの行番号からデータの行インデックスに変換
-                    data_row_start = excel_row_to_data_row.get(min_row)
-                    data_row_end = excel_row_to_data_row.get(max_row)
-
-                    if data_row_start is not None and data_row_end is not None:
-                        # 列インデックスは0ベース（Excelは1ベース）
-                        data_col_start = min_col - 1
-                        data_col_end = max_col - 1
-
-                        # データの範囲内かチェック
-                        if (
-                            0 <= data_row_start < len(data)
-                            and 0 <= data_row_end < len(data)
-                            and 0 <= data_col_start < max_cols
-                            and 0 <= data_col_end < max_cols
-                        ):
-                            # SPANコマンドでセルを結合
-                            table_style.append(
-                                ("SPAN", (data_col_start, data_row_start), (data_col_end, data_row_end))
-                            )
-
-                # 各セルのスタイルを適用
-                for row_idx, row_data in enumerate(data):
-                    # データの行インデックスからExcelの行番号を逆引き
-                    excel_row = None
-                    for excel_row_num, data_row_idx in excel_row_to_data_row.items():
-                        if data_row_idx == row_idx:
-                            excel_row = excel_row_num
-                            break
-
-                    if excel_row is None:
-                        excel_row = row_idx + 1  # フォールバック
-
-                    for col_idx in range(len(row_data)):
-                        cell = ws.cell(row=excel_row, column=col_idx + 1)
-
-                        # フォントスタイル（日本語フォントを使用）
-                        font = cell.font
-                        # 日本語フォントが登録されている場合はそれを使用、そうでなければHelvetica
-                        if japanese_font_name:
-                            font_name = japanese_font_name
-                        else:
-                            font_name = "Helvetica"
-
-                        font_size = 9
-                        font_color = colors.black
-
-                        if font:
-                            if font.bold:
-                                # 太字の場合はBoldフォントを使用
-                                if japanese_font_bold_name:
-                                    font_name = japanese_font_bold_name
-                                else:
-                                    font_name = "Helvetica-Bold"
-                            if font.size:
-                                font_size = int(font.size)
-                            if font.color and font.color.rgb:
-                                try:
-                                    rgb = font.color.rgb
-                                    if isinstance(rgb, str) and rgb.startswith("FF"):
-                                        rgb = rgb[2:]  # 'FF'プレフィックスを削除
-                                    font_color = colors.HexColor("#" + rgb)
-                                except Exception:
-                                    pass
-
-                        # 背景色（Excelで明示的に設定された場合のみ）
-                        fill = cell.fill
-                        bg_color = None
-                        # fill_typeが'solid'または'patternFill'の場合のみ背景色を設定
-                        if fill and fill.fill_type:
-                            fill_type = str(fill.fill_type).lower()
-                            if fill_type in ["solid", "patternfill"]:
-                                if fill.start_color and fill.start_color.rgb:
-                                    try:
-                                        rgb = fill.start_color.rgb
-                                        if isinstance(rgb, str) and rgb.startswith("FF"):
-                                            rgb = rgb[2:]
-                                        # 白やデフォルト色は背景色として設定しない
-                                        rgb_upper = rgb.upper()
-                                        if rgb_upper not in ["FFFFFF", "000000", "", "FFFFFFFF", "00000000"]:
-                                            bg_color = colors.HexColor("#" + rgb)
-                                    except Exception:
-                                        pass
-
-                        # 配置
-                        # TableStyleでは文字列を使用する必要がある（TA_LEFTなどの整数定数は使用不可）
-                        alignment = cell.alignment
-                        align = "LEFT"  # デフォルトは左揃え
-                        if alignment:
-                            if alignment.horizontal == "center":
-                                align = "CENTER"
-                            elif alignment.horizontal == "right":
-                                align = "RIGHT"
-                            elif alignment.horizontal == "justify":
-                                # TableStyleではjustifyはサポートされていないため、LEFTにフォールバック
-                                align = "LEFT"
-
-                        # スタイルを適用
-                        cell_range = (col_idx, row_idx)
-                        table_style.append(("FONTNAME", cell_range, cell_range, font_name))
-                        table_style.append(("FONTSIZE", cell_range, cell_range, font_size))
-                        table_style.append(("TEXTCOLOR", cell_range, cell_range, font_color))
-                        if bg_color:
-                            table_style.append(("BACKGROUND", cell_range, cell_range, bg_color))
-                        table_style.append(("ALIGN", cell_range, cell_range, align))
-
-                        # Excelの罫線情報を読み取って適用
-                        border = cell.border
-                        if border:
-                            # 罫線の太さを決定（Excelのスタイルに応じて）
-                            def get_border_width(border_side):
-                                """罫線の太さを取得"""
-                                if not border_side or not border_side.style:
-                                    return 0
-                                style = border_side.style
-                                if style == "thin":
-                                    return 0.5
-                                elif style == "medium":
-                                    return 1.0
-                                elif style == "thick":
-                                    return 2.0
-                                elif style == "double":
-                                    return 1.5
-                                elif style == "hair":
-                                    return 0.25
-                                elif style == "dotted" or style == "dashed":
-                                    return 0.5
-                                elif style == "dashDot" or style == "dashDotDot":
-                                    return 0.5
-                                elif style == "slantDashDot":
-                                    return 0.5
-                                elif style == "none":
-                                    return 0
-                                else:
-                                    return 0.5  # デフォルト
-
-                            # 罫線の色を取得
-                            def get_border_color(border_side):
-                                """罫線の色を取得"""
-                                if not border_side or not border_side.color:
-                                    return colors.black
-                                try:
-                                    if border_side.color.rgb:
-                                        rgb = border_side.color.rgb
-                                        if isinstance(rgb, str) and rgb.startswith("FF"):
-                                            rgb = rgb[2:]
-                                        return colors.HexColor("#" + rgb)
-                                except Exception:
-                                    pass
-                                return colors.black
-
-                            # 上罫線
-                            if border.top and border.top.style and border.top.style != "none":
-                                width = get_border_width(border.top)
-                                color = get_border_color(border.top)
-                                table_style.append(("LINEABOVE", cell_range, cell_range, width, color))
-
-                            # 下罫線
-                            if border.bottom and border.bottom.style and border.bottom.style != "none":
-                                width = get_border_width(border.bottom)
-                                color = get_border_color(border.bottom)
-                                table_style.append(("LINEBELOW", cell_range, cell_range, width, color))
-
-                            # 左罫線
-                            if border.left and border.left.style and border.left.style != "none":
-                                width = get_border_width(border.left)
-                                color = get_border_color(border.left)
-                                table_style.append(("LINEBEFORE", cell_range, cell_range, width, color))
-
-                            # 右罫線
-                            if border.right and border.right.style and border.right.style != "none":
-                                width = get_border_width(border.right)
-                                color = get_border_color(border.right)
-                                table_style.append(("LINEAFTER", cell_range, cell_range, width, color))
-
-                # グリッド線は削除（Excelで設定された罫線のみを表示）
-                # table_style.append(("GRID", (0, 0), (-1, -1), 0.5, colors.grey))  # 削除
-
-                # 行の高さを設定（デフォルト背景色は設定しない）
-                # 白背景を強制しない（Excelの背景色設定を尊重）
-                # table_style.append(("ROWBACKGROUNDS", ...))  # 削除
-
-                table.setStyle(TableStyle(table_style))
-                story.append(table)
-
-            # 最後のシート以外は改ページを追加
-            if sheet_name != wb.sheetnames[-1]:
-                story.append(PageBreak())
-
-        # PDFを生成
-        doc.build(story)
-
-        if os.path.exists(pdf_path):
-            return pdf_path, None
-        else:
-            return None, "PDFファイルの生成に失敗しました"
-
-    except ImportError as e:
-        error_msg = f"必要なライブラリがインストールされていません: {str(e)}。pip install reportlab Pillow を実行してください"
-        print(error_msg)
-        return None, error_msg
     except Exception as e:
         error_msg = f"PDF変換中にエラーが発生しました: {str(e)}"
         print(error_msg)
@@ -669,7 +474,7 @@ def download_file(history_id):
                     flash(f"PDF変換に失敗しました: {error_message}", "error")
                 else:
                     flash(
-                        "PDF変換に失敗しました。reportlabライブラリが正しくインストールされているか確認してください。",
+                        "PDF変換に失敗しました。LibreOfficeが正しくインストールされているか確認してください。",
                         "error",
                     )
                 return redirect(f"/download/{history_id}")
@@ -713,7 +518,7 @@ def download_history(history_id):
                     flash(f"PDF変換に失敗しました: {error_message}", "error")
                 else:
                     flash(
-                        "PDF変換に失敗しました。reportlabライブラリが正しくインストールされているか確認してください。",
+                        "PDF変換に失敗しました。LibreOfficeが正しくインストールされているか確認してください。",
                         "error",
                     )
                 return redirect("/history")
