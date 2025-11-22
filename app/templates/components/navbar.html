@@ -1,0 +1,23 @@
+<nav class="bg-white shadow-sm">
+    <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+                <a href="{{ url_for('main.dashboard') }}" class="text-xl font-bold text-gray-800">
+                    Craft Flow
+                </a>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="{{ url_for('reservation.index') }}" class="text-gray-700 hover:text-gray-900">
+                    体験プログラム
+                </a>
+                <a href="{{ url_for('reservation.list_reservations') }}" class="text-gray-700 hover:text-gray-900">
+                    予約一覧
+                </a>
+                <a href="{{ url_for('program.index') }}" class="text-gray-700 hover:text-gray-900">
+                    プログラム管理
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+

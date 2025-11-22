@@ -4,6 +4,7 @@ db.sqlite
 __pycache__/
 instance/
 *.db
+2.0.36
 uploads/
 *.pyc
 *.pyo
