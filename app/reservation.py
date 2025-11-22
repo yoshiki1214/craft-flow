@@ -24,6 +24,9 @@ def index():
 def create(program_id=None):
     """予約を作成する"""
     try:
+        # 今日の日付を取得（テンプレート用）
+        today_date = date.today().isoformat()
+        
         program = db.session.get(ExperienceProgram, program_id) if program_id else None
         
         # 体験プログラムの選択肢を準備
@@ -423,8 +426,11 @@ def api_events():
     reservation_map = {(r.program_id, r.reservation_date): r.total_participants for r in reservations_count}
 
     events = []
+    today = date.today()
     for day in range((end_date - start_date).days):
         current_date = start_date + timedelta(days=day)
+        is_past = current_date < today
+        
         for program in programs:
             booked_participants = reservation_map.get((program.id, current_date), 0)
             remaining = program.capacity - booked_participants
@@ -438,29 +444,40 @@ def api_events():
             elif '天然藍' in program.name:
                 display_name = '天然藍'
 
-            # URLを生成（満席でない場合のみ）
+            # URLを生成（過去の日程、満席の場合は生成しない）
             event_url = None
-            if not is_full:
+            if not is_past and not is_full:
                 event_url = url_for('reservation.create', program_id=program.id, _external=False) + f"?date={current_date.isoformat()}"
             
-            # 色の決定: 満席=赤、予約ありで余裕あり=緑、予約なし=青
-            if is_full:
+            # 色の決定: 過去=薄グレー、満席=赤、予約ありで余裕あり=緑、予約なし=青
+            if is_past:
+                bg_color = '#d1d5db'  # 薄グレー（過去の日程）
+                border_color = '#d1d5db'
+                cursor_class = 'cursor-not-allowed'
+                title_suffix = '（受付終了）'
+            elif is_full:
                 bg_color = '#ef4444'  # 赤
                 border_color = '#ef4444'
+                cursor_class = 'cursor-not-allowed'
+                title_suffix = '受付終了'
             elif has_reservations:
                 bg_color = '#22c55e'  # 緑（予約が入っていて余裕がある）
                 border_color = '#22c55e'
+                cursor_class = 'cursor-pointer'
+                title_suffix = f'残り{remaining}名'
             else:
                 bg_color = '#3b82f6'  # 青（予約が入っていない）
                 border_color = '#3b82f6'
+                cursor_class = 'cursor-pointer'
+                title_suffix = f'残り{remaining}名'
             
             events.append({
-                'title': f"{display_name}: {'受付終了' if is_full else f'残り{remaining}名'}",
+                'title': f"{display_name}: {title_suffix}",
                 'start': current_date.isoformat(),
                 'url': event_url,
                 'backgroundColor': bg_color,
                 'borderColor': border_color,
-                'classNames': ['cursor-pointer'] if not is_full else ['cursor-not-allowed'],
+                'classNames': [cursor_class],
                 'extendedProps': {
                     'program_id': program.id,
                     'program_name': program.name,

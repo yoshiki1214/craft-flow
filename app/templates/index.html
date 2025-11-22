@@ -42,6 +42,11 @@
             eventClick: function (info) {
                 info.jsEvent.preventDefault();
 
+                // URLが設定されていない場合（過去の日程や満席の場合）はクリックを無効化
+                if (!info.event.url) {
+                    return;
+                }
+
                 // 拡張プロパティから情報を取得
                 var extendedProps = info.event.extendedProps;
                 var programId = extendedProps.program_id;
