@@ -33,10 +33,10 @@
         <div class="download-options">
             <h2>ダウンロード形式を選択</h2>
             <div class="download-buttons">
-                <a href="{{ url_for('download_file', history_id=history.id, format='pdf') }}" class="btn btn-large btn-danger">
+                <a href="{{ url_for('settlement.download_file', history_id=history.id, format='pdf') }}" class="btn btn-large btn-danger">
                     📄 PDF形式でダウンロード
                 </a>
-                <a href="{{ url_for('download_file', history_id=history.id, format='excel') }}" class="btn btn-large">
+                <a href="{{ url_for('settlement.download_file', history_id=history.id, format='excel') }}" class="btn btn-large">
                     📊 Excel形式でダウンロード
                 </a>
             </div>
@@ -49,8 +49,8 @@
     <div class="other-actions">
         <h2>その他の操作</h2>
         <div class="action-buttons">
-            <a href="{{ url_for('history_page') }}" class="btn btn-secondary">発行履歴を見る</a>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">ファイルを再アップロード</a>
+            <a href="{{ url_for('settlement.history_page') }}" class="btn btn-secondary">発行履歴を見る</a>
+            <a href="{{ url_for('settlement.index') }}" class="btn btn-secondary">ファイルを再アップロード</a>
         </div>
     </div>
 </div>

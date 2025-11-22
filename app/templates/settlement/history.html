@@ -25,9 +25,9 @@
                 <td>{{ history.file_name }}</td>
                 <td>
                     <div class="download-buttons-group">
-                        <a href="{{ url_for('download_history', history_id=history.id, format='pdf') }}" class="btn btn-small btn-danger">PDF</a>
-                        <a href="{{ url_for('download_history', history_id=history.id, format='excel') }}" class="btn btn-small">Excel</a>
-                        <form method="POST" action="{{ url_for('delete_history', history_id=history.id) }}" style="display: inline;" onsubmit="return confirm('この発行履歴を削除しますか？\nファイルも削除されます。');">
+                        <a href="{{ url_for('settlement.download_history', history_id=history.id, format='pdf') }}" class="btn btn-small btn-danger">PDF</a>
+                        <a href="{{ url_for('settlement.download_history', history_id=history.id, format='excel') }}" class="btn btn-small">Excel</a>
+                        <form method="POST" action="{{ url_for('settlement.delete_history', history_id=history.id) }}" style="display: inline;" onsubmit="return confirm('この発行履歴を削除しますか？\nファイルも削除されます。');">
                             <button type="submit" class="btn btn-small btn-delete">削除</button>
                         </form>
                     </div>
@@ -41,7 +41,7 @@
     {% endif %}
     
     <div style="margin-top: 2rem;">
-        <a href="{{ url_for('index') }}" class="btn">ファイルをアップロード</a>
+        <a href="{{ url_for('settlement.index') }}" class="btn">ファイルをアップロード</a>
     </div>
 </div>
 {% endblock %}
