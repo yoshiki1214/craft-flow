@@ -1,3 +1,6 @@
+"""
+予約機能関連のフォーム定義
+"""
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, DateField, SelectField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Email, NumberRange, ValidationError
@@ -50,4 +53,5 @@ class ReservationForm(FlaskForm):
         for field in self._fields.values():
             if field.type not in ['SubmitField', 'CSRFTokenField']:
                 field.render_kw = {'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}
-        
+
+

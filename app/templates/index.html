@@ -47,21 +47,8 @@
                     return;
                 }
 
-                // 拡張プロパティから情報を取得
-                var extendedProps = info.event.extendedProps;
-                var programId = extendedProps.program_id;
-                var date = extendedProps.date;
-
-                // URLが設定されている場合はそれを使用、なければ手動で構築
-                if (info.event.url) {
-                    window.location.href = info.event.url;
-                } else if (programId && date) {
-                    // URLが設定されていない場合、手動で構築
-                    var url = '/create/' + programId + '?date=' + date;
-                    window.location.href = url;
-                } else {
-                    console.warn('予約フォームを開くための情報が不足しています');
-                }
+                // URLが設定されている場合は遷移
+                window.location.href = info.event.url;
             },
             height: 'auto',
             firstDay: 1 // 月曜日から開始

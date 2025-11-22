@@ -427,62 +427,64 @@ def api_events():
 
     events = []
     today = date.today()
-    for day in range((end_date - start_date).days):
-        current_date = start_date + timedelta(days=day)
-        is_past = current_date < today
+    
+    # 予約があるイベントのみを表示
+    for (program_id, reservation_date), booked_participants in reservation_map.items():
+        # プログラム情報を取得
+        program = next((p for p in programs if p.id == program_id), None)
+        if not program:
+            continue
+            
+        remaining = program.capacity - booked_participants
+        is_full = remaining <= 0
+        is_past = reservation_date < today
         
-        for program in programs:
-            booked_participants = reservation_map.get((program.id, current_date), 0)
-            remaining = program.capacity - booked_participants
-            is_full = remaining <= 0
-            has_reservations = booked_participants > 0
-            
-            # プログラム名をカレンダー表示用に短縮
-            display_name = program.name
-            if 'ハンカチ' in program.name:
-                display_name = 'ハンカチ'
-            elif '天然藍' in program.name:
-                display_name = '天然藍'
+        # プログラム名をカレンダー表示用に短縮
+        display_name = program.name
+        if 'ハンカチ' in program.name:
+            display_name = 'ハンカチ'
+        elif '天然藍' in program.name:
+            display_name = '天然藍'
 
-            # URLを生成（過去の日程、満席の場合は生成しない）
-            event_url = None
-            if not is_past and not is_full:
-                event_url = url_for('reservation.create', program_id=program.id, _external=False) + f"?date={current_date.isoformat()}"
-            
-            # 色の決定: 過去=薄グレー、満席=赤、予約ありで余裕あり=緑、予約なし=青
-            if is_past:
-                bg_color = '#d1d5db'  # 薄グレー（過去の日程）
-                border_color = '#d1d5db'
-                cursor_class = 'cursor-not-allowed'
-                title_suffix = '（受付終了）'
-            elif is_full:
-                bg_color = '#ef4444'  # 赤
-                border_color = '#ef4444'
-                cursor_class = 'cursor-not-allowed'
-                title_suffix = '受付終了'
-            elif has_reservations:
-                bg_color = '#22c55e'  # 緑（予約が入っていて余裕がある）
-                border_color = '#22c55e'
-                cursor_class = 'cursor-pointer'
-                title_suffix = f'残り{remaining}名'
-            else:
-                bg_color = '#3b82f6'  # 青（予約が入っていない）
-                border_color = '#3b82f6'
-                cursor_class = 'cursor-pointer'
-                title_suffix = f'残り{remaining}名'
-            
-            events.append({
-                'title': f"{display_name}: {title_suffix}",
-                'start': current_date.isoformat(),
-                'url': event_url,
-                'backgroundColor': bg_color,
-                'borderColor': border_color,
-                'classNames': [cursor_class],
-                'extendedProps': {
-                    'program_id': program.id,
-                    'program_name': program.name,
-                    'date': current_date.isoformat()
-                }
-            })
+        # URLを生成（過去の日程、満席の場合は生成しない）
+        event_url = None
+        if not is_past and not is_full:
+            event_url = url_for('reservation.create', program_id=program.id, _external=False) + f"?date={reservation_date.isoformat()}"
+        
+        # 色の決定: 過去=薄グレー、満席=赤、予約ありで余裕あり=緑
+        if is_past:
+            bg_color = '#d1d5db'  # 薄グレー（過去の日程）
+            border_color = '#d1d5db'
+            cursor_class = 'cursor-not-allowed'
+            title_suffix = '（受付終了）'
+        elif is_full:
+            bg_color = '#ef4444'  # 赤（満席）
+            border_color = '#ef4444'
+            cursor_class = 'cursor-not-allowed'
+            title_suffix = '受付終了'
+        else:
+            bg_color = '#22c55e'  # 緑（予約が入っていて余裕がある）
+            border_color = '#22c55e'
+            cursor_class = 'cursor-pointer'
+            title_suffix = f'残り{remaining}名'
+        
+        event = {
+            'title': f"{display_name}: {title_suffix}",
+            'start': reservation_date.isoformat(),
+            'backgroundColor': bg_color,
+            'borderColor': border_color,
+            'classNames': [cursor_class],
+            'extendedProps': {
+                'program_id': program.id,
+                'program_name': program.name,
+                'date': reservation_date.isoformat()
+            }
+        }
+        
+        # URLが存在する場合のみ追加（nullの場合は含めない）
+        if event_url:
+            event['url'] = event_url
+        
+        events.append(event)
 
     return jsonify(events)

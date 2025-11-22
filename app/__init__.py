@@ -3,6 +3,7 @@ Flaskアプリケーションの初期化モジュール
 
 Application Factoryパターンを使用してFlaskアプリケーションを作成する。
 """
+
 import locale
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -34,18 +35,20 @@ def create_app(config_name: str = "default") -> Flask:
 
     # config.pyから設定を読み込む
     app.config.from_object(config[config_name])
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+    app.config["SECRET_KEY"] = os.environ.get(
+        "SECRET_KEY", "dev-secret-key-change-in-production"
+    )
     app.config["UPLOAD_FOLDER"] = os.path.join(app.instance_path, "uploads")
     app.config["OUTPUT_FOLDER"] = os.path.join(app.instance_path, "outputs")
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB制限
 
     # instanceフォルダの作成
-
     try:
         os.makedirs(app.instance_path)
     except OSError:
         pass
-    app.config.from_object(config[config_name])
+
+    # 設定固有の初期化処理を実行
     config[config_name].init_app(app)
 
     try:
@@ -66,10 +69,7 @@ def create_app(config_name: str = "default") -> Flask:
     # 拡張機能の初期化
     db.init_app(app)
     migrate.init_app(app, db)
-<<<<<<< HEAD
-    # login_manager.init_app(app) # ユーザー管理実装時に有効化
-    # login_manager.login_view = 'auth.login'  # ユーザー管理実装時に有効化
-    
+
     # 循環インポートを避けるため、関数内でインポートします
     from . import models
     from .reservation import reservation_bp
@@ -77,16 +77,15 @@ def create_app(config_name: str = "default") -> Flask:
     from . import commands
 
     # カスタムフィルターの登録
-    @app.template_filter('comma')
+    @app.template_filter("comma")
     def format_comma(value):
         """数値を3桁区切りの文字列にフォーマットするフィルター"""
-        locale.setlocale(locale.LC_ALL, '')
+        locale.setlocale(locale.LC_ALL, "")
         return locale.format_string("%d", value, grouping=True)
 
-    app.register_blueprint(reservation_bp)
-    app.register_blueprint(program_bp, url_prefix='/programs')
-    commands.init_app(app)
-=======
+    app.register_blueprint(reservation_bp, url_prefix="/reservations")
+    app.register_blueprint(program_bp, url_prefix="/programs")
+
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     login_manager.login_message = "ログインが必要です。"
@@ -102,12 +101,18 @@ def create_app(config_name: str = "default") -> Flask:
         return User.query.get(int(user_id))
 
     # データベースモデルのインポート（循環インポートを避けるため）
-    from app.models import pos_sales, daily_sales, user, settlement_history  # noqa: F401
+    from app.models import (
+        pos_sales,
+        daily_sales,
+        user,
+        settlement_history,
+        program,
+        reservation,
+    )  # noqa: F401
 
     # 機能Blueprintの登録
     from app.features import register_features
 
     register_features(app)
->>>>>>> main
 
     return app
