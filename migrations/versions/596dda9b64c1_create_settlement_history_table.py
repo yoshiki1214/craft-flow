@@ -32,13 +32,6 @@ def upgrade():
         batch_op.create_index('idx_settlement_history_created_at', ['created_at'], unique=False)
         batch_op.create_index('idx_settlement_history_year_month', ['year', 'month'], unique=False)
 
-    with op.batch_alter_table('customers', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('idx_bank_branch'))
-        batch_op.drop_index(batch_op.f('idx_created_at'))
-        batch_op.drop_index(batch_op.f('idx_customer_name'))
-
-    op.drop_table('customers')
-    op.drop_table('transfer_history')
     # ### end Alembic commands ###
 
 
